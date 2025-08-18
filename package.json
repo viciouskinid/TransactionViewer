@@ -2,6 +2,7 @@
   "name": "transaction-viewer",
   "version": "1.0.0",
   "description": "A React application for viewing Ethereum transaction data and receipts",
+  "homepage": "https://viciouskinid.github.io/TransactionViewer",
   "private": true,
   "dependencies": {
     "js-yaml": "^4.1.0",
@@ -11,6 +12,7 @@
   },
   "devDependencies": {
     "autoprefixer": "^10.4.14",
+    "gh-pages": "^6.3.0",
     "postcss": "^8.4.24",
     "tailwindcss": "^3.3.2"
   },
@@ -18,7 +20,9 @@
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "predeploy": "npm run build",
+    "deploy": "gh-pages -d build"
   },
   "eslintConfig": {
     "extends": [
