@@ -1,0 +1,1451 @@
+# Chain data sourced from https://api.llama.fi/v2/chains on August 17, 2025
+# Organized by chainId as key for efficient lookups
+
+1666600000:
+  gecko_id: harmony
+  tvl: 1447536.43086931
+  tokenSymbol: ONE
+  cmcId: "3945"
+  name: Harmony
+
+1313161554:
+  gecko_id: aurora-near
+  tvl: 4685505.85467315
+  tokenSymbol: AURORA
+  cmcId: "14803"
+  name: Aurora
+
+42793:
+  gecko_id: null
+  tvl: 45900862.5549598
+  tokenSymbol: null
+  cmcId: null
+  name: Etherlink
+
+57073:
+  gecko_id: null
+  tvl: 9583594.58546253
+  tokenSymbol: null
+  cmcId: null
+  name: Ink
+
+42220:
+  gecko_id: celo
+  tvl: 83778049.5775139
+  tokenSymbol: CELO
+  cmcId: "5567"
+  name: Celo
+
+21000000:
+  gecko_id: null
+  tvl: 27717259.4044808
+  tokenSymbol: null
+  cmcId: null
+  name: Corn
+
+239:
+  gecko_id: tac
+  tvl: 209413263.240837
+  tokenSymbol: TAC
+  cmcId: null
+  name: TAC
+
+1284:
+  gecko_id: moonbeam
+  tvl: 8012492.60017388
+  tokenSymbol: GLMR
+  cmcId: "6836"
+  name: Moonbeam
+
+252:
+  gecko_id: fraxtal
+  tvl: 80420794.1898959
+  tokenSymbol: FXTL
+  cmcId: null
+  name: Fraxtal
+
+146:
+  gecko_id: sonic-3
+  tvl: 452618432.341368
+  tokenSymbol: S
+  cmcId: null
+  name: Sonic
+
+5000:
+  gecko_id: mantle
+  tvl: 246033684.424775
+  tokenSymbol: MNT
+  cmcId: "27075"
+  name: Mantle
+
+98866:
+  gecko_id: plume
+  tvl: 266364649.665735
+  tokenSymbol: PLUME
+  cmcId: "35364"
+  name: Plume Mainnet
+
+56:
+  gecko_id: binancecoin
+  tvl: 7289506630.19932
+  tokenSymbol: BNB
+  cmcId: "1839"
+  name: BSC
+
+100:
+  gecko_id: gnosis
+  tvl: 351523432.816459
+  tokenSymbol: GNO
+  cmcId: "1659"
+  name: Gnosis
+
+167000:
+  gecko_id: null
+  tvl: 2919257.59458989
+  tokenSymbol: null
+  cmcId: null
+  name: Taiko
+
+250:
+  gecko_id: fantom
+  tvl: 16192688.1120384
+  tokenSymbol: FTM
+  cmcId: "3513"
+  name: Fantom
+
+43114:
+  gecko_id: avalanche-2
+  tvl: 1976699437.04554
+  tokenSymbol: AVAX
+  cmcId: "5805"
+  name: Avalanche
+
+1:
+  gecko_id: ethereum
+  tvl: 93518925875.6537
+  tokenSymbol: ETH
+  cmcId: "1027"
+  name: Ethereum
+
+137:
+  gecko_id: polygon-ecosystem-token
+  tvl: 1255891253.15489
+  tokenSymbol: POL
+  cmcId: "28321"
+  name: Polygon
+
+10:
+  gecko_id: optimism
+  tvl: 492144584.968249
+  tokenSymbol: OP
+  cmcId: "11840"
+  name: OP Mainnet
+
+8453:
+  gecko_id: null
+  tvl: 4880343128.92545
+  tokenSymbol: null
+  cmcId: null
+  name: Base
+
+42161:
+  gecko_id: arbitrum
+  tvl: 3302146974.95435
+  tokenSymbol: ARB
+  cmcId: "11841"
+  name: Arbitrum
+
+128:
+  gecko_id: huobi-token
+  tvl: 97572.6987129697
+  tokenSymbol: HT
+  cmcId: "2502"
+  name: Heco
+
+7000:
+  gecko_id: zetachain
+  tvl: 9918133.42566256
+  tokenSymbol: ZETA
+  cmcId: "21259"
+  name: ZetaChain
+
+"11235":
+  gecko_id: islamic-coin
+  tvl: 1229008.04617361
+  tokenSymbol: ISLM
+  cmcId: "26220"
+  name: HAQQ
+
+30:
+  gecko_id: rootstock
+  tvl: 261345764.425172
+  tokenSymbol: RBTC
+  cmcId: "3626"
+  name: Rootstock
+
+199:
+  gecko_id: bittorrent
+  tvl: 415199.55015516
+  tokenSymbol: BTT
+  cmcId: "16086"
+  name: Bittorrent
+
+43111:
+  gecko_id: null
+  tvl: 84829786.6932775
+  tokenSymbol: null
+  cmcId: null
+  name: Hemi
+
+11297108109:
+  gecko_id: null
+  tvl: 554.748740176232
+  tokenSymbol: null
+  cmcId: null
+  name: Palm
+
+534352:
+  gecko_id: null
+  tvl: 252162364.121254
+  tokenSymbol: null
+  cmcId: null
+  name: Scroll
+
+59144:
+  gecko_id: null
+  tvl: 311448744.685593
+  tokenSymbol: null
+  cmcId: null
+  name: Linea
+
+81457:
+  gecko_id: null
+  tvl: 74863895.5964317
+  tokenSymbol: null
+  cmcId: null
+  name: Blast
+
+747474:
+  gecko_id: null
+  tvl: 426466244.846363
+  tokenSymbol: null
+  cmcId: null
+  name: Katana
+
+1101:
+  gecko_id: null
+  tvl: 2586056.80108475
+  tokenSymbol: null
+  cmcId: null
+  name: Polygon zkEVM
+
+40:
+  gecko_id: telos
+  tvl: 8314667.2253612
+  tokenSymbol: TLOS
+  cmcId: "4660"
+  name: Telos
+
+108:
+  gecko_id: thunder-token
+  tvl: 499437.654082863
+  tokenSymbol: TT
+  cmcId: "3930"
+  name: ThunderCore
+
+1088:
+  gecko_id: metis-token
+  tvl: 35584871.3988873
+  tokenSymbol: METIS
+  cmcId: "9640"
+  name: Metis
+
+288:
+  gecko_id: boba-network
+  tvl: 3921463.8803007
+  tokenSymbol: BOBA
+  cmcId: "14556"
+  name: Boba
+
+122:
+  gecko_id: fuse-network-token
+  tvl: 598722.076770739
+  tokenSymbol: FUSE
+  cmcId: "5634"
+  name: Fuse
+
+1285:
+  gecko_id: moonriver
+  tvl: 3442543.76527824
+  tokenSymbol: MOVR
+  cmcId: "9285"
+  name: Moonriver
+
+66:
+  gecko_id: oec-token
+  tvl: 2871182.27310861
+  tokenSymbol: OKT
+  cmcId: "8267"
+  name: OKTChain
+
+42170:
+  gecko_id: null
+  tvl: 926715.141791586
+  tokenSymbol: null
+  cmcId: null
+  name: Arbitrum Nova
+
+314:
+  gecko_id: filecoin
+  tvl: 31935927.5483443
+  tokenSymbol: FIL
+  cmcId: "2280"
+  name: Filecoin
+
+106:
+  gecko_id: velas
+  tvl: 457184.789011777
+  tokenSymbol: VLX
+  cmcId: "4747"
+  name: Velas
+
+25:
+  gecko_id: crypto-com-chain
+  tvl: 570898410.972065
+  tokenSymbol: CRO
+  cmcId: "3635"
+  name: Cronos
+
+42262:
+  gecko_id: oasis-network
+  tvl: 267914.741741989
+  tokenSymbol: ROSE
+  cmcId: "7653"
+  name: Oasis Emerald
+
+324:
+  gecko_id: zksync
+  tvl: 56563769.7587404
+  tokenSymbol: ZK
+  cmcId: "24091"
+  name: ZKsync Era
+
+169:
+  gecko_id: manta-network
+  tvl: 21664242.2261903
+  tokenSymbol: MANTA
+  cmcId: "13631"
+  name: Manta
+
+48900:
+  gecko_id: zircuit
+  tvl: 10401791.7134634
+  tokenSymbol: ZRC
+  cmcId: "29711"
+  name: Zircuit
+
+177:
+  gecko_id: hashkey-ecopoints
+  tvl: 3081910.37943089
+  tokenSymbol: HSK
+  cmcId: "33849"
+  name: HashKey Chain
+
+61:
+  gecko_id: ethereum-classic
+  tvl: 442770.875485557
+  tokenSymbol: ETC
+  cmcId: "1321"
+  name: EthereumClassic
+
+4689:
+  gecko_id: iotex
+  tvl: 17245143.8846875
+  tokenSymbol: IOTX
+  cmcId: "2777"
+  name: IoTeX
+
+321:
+  gecko_id: kucoin-shares
+  tvl: 1453785.74625819
+  tokenSymbol: KCS
+  cmcId: "2087"
+  name: KCC
+
+888:
+  gecko_id: wanchain
+  tvl: 5866675.46238878
+  tokenSymbol: WAN
+  cmcId: "2606"
+  name: Wanchain
+
+58:
+  gecko_id: ong
+  tvl: 4642.69432110484
+  tokenSymbol: ONG
+  cmcId: "3217"
+  name: OntologyEVM
+
+204:
+  gecko_id: null
+  tvl: 11802700.8995257
+  tokenSymbol: null
+  cmcId: null
+  name: opBNB
+
+2020:
+  gecko_id: null
+  tvl: 67354456.5669791
+  tokenSymbol: RON
+  cmcId: null
+  name: Ronin
+
+"9001":
+  gecko_id: evmos
+  tvl: 233405.99234465
+  tokenSymbol: EVMOS
+  cmcId: null
+  name: Evmos
+
+130:
+  gecko_id: null
+  tvl: 652131965.808729
+  tokenSymbol: "-"
+  cmcId: null
+  name: Unichain
+
+39797:
+  gecko_id: energi
+  tvl: 474435.340818723
+  tokenSymbol: NRG
+  cmcId: "3218"
+  name: Energi
+
+295:
+  gecko_id: hedera-hashgraph
+  tvl: 134400571.075363
+  tokenSymbol: HBAR
+  cmcId: "4642"
+  name: Hedera
+
+19:
+  gecko_id: songbird
+  tvl: 1064465.73464014
+  tokenSymbol: SGB
+  cmcId: "12186"
+  name: Songbird
+
+8217:
+  gecko_id: klay-token
+  tvl: 102181078.746807
+  tokenSymbol: KLAY
+  cmcId: "4256"
+  name: Kaia
+
+7332:
+  gecko_id: zencash
+  tvl: 7229.32341178782
+  tokenSymbol: ZEN
+  cmcId: null
+  name: Horizen EON
+
+60808:
+  gecko_id: null
+  tvl: 157640202.753394
+  tokenSymbol: null
+  cmcId: null
+  name: BOB
+
+1818:
+  gecko_id: cube-network
+  tvl: 0
+  tokenSymbol: CUBE
+  cmcId: "20519"
+  name: Cube
+
+592:
+  gecko_id: astar
+  tvl: 9105474.51778805
+  tokenSymbol: ASTR
+  cmcId: "12885"
+  name: Astar
+
+32520:
+  gecko_id: bitrise-token
+  tvl: 0.212239971982515
+  tokenSymbol: BRISE
+  cmcId: "11079"
+  name: Bitgert
+
+20:
+  gecko_id: elastos
+  tvl: 726762.53822857
+  tokenSymbol: ELA
+  cmcId: "2492"
+  name: Elastos
+
+47805:
+  gecko_id: rei-network
+  tvl: 7818.80283121797
+  tokenSymbol: REI
+  cmcId: "19819"
+  name: REI
+
+70:
+  gecko_id: hoo-token
+  tvl: 0
+  tokenSymbol: HOO
+  cmcId: "7543"
+  name: Hoo
+
+245022934:
+  gecko_id: neon
+  tvl: 196175.001919152
+  tokenSymbol: NEON
+  cmcId: "26735"
+  name: Neon
+
+35441:
+  gecko_id: null
+  tvl: 81002.6855543792
+  tokenSymbol: QGOV
+  cmcId: null
+  name: Q Protocol
+
+82:
+  gecko_id: meter
+  tvl: 708061.491813039
+  tokenSymbol: MTRG
+  cmcId: "5919"
+  name: Meter
+
+1024:
+  gecko_id: clover-finance
+  tvl: 0
+  tokenSymbol: CLV
+  cmcId: "8384"
+  name: CLV
+
+336:
+  gecko_id: shiden
+  tvl: 36346.5116267271
+  tokenSymbol: SDN
+  cmcId: "11451"
+  name: Shiden
+
+246:
+  gecko_id: energy-web-token
+  tvl: 224308.601642953
+  tokenSymbol: EWT
+  cmcId: "5268"
+  name: EnergyWeb
+
+60:
+  gecko_id: gochain
+  tvl: 7627.08490600918
+  tokenSymbol: GO
+  cmcId: "2861"
+  name: GoChain
+
+269:
+  gecko_id: high-performance-blockchain
+  tvl: 0
+  tokenSymbol: HPB
+  cmcId: "2345"
+  name: HPB
+
+666666666:
+  gecko_id: degen-base
+  tvl: 278712.621628534
+  tokenSymbol: DEGEN
+  cmcId: null
+  name: Degen
+
+32659:
+  gecko_id: fsn
+  tvl: 0
+  tokenSymbol: FSN
+  cmcId: "2530"
+  name: Fusion
+
+88:
+  gecko_id: tomochain
+  tvl: 1843147.31471395
+  tokenSymbol: VIC
+  cmcId: "2570"
+  name: Viction
+
+0:
+  gecko_id: kardiachain
+  tvl: 120019.358501896
+  tokenSymbol: KAI
+  cmcId: "5453"
+  name: Kardia
+
+2001:
+  gecko_id: null
+  tvl: 818243.829268222
+  tokenSymbol: null
+  cmcId: null
+  name: Milkomeda C1
+
+10000:
+  gecko_id: bitcoin-cash
+  tvl: 736821.705602431
+  tokenSymbol: BCH
+  cmcId: "1831"
+  name: smartBCH
+
+333999:
+  gecko_id: polis
+  tvl: 0
+  tokenSymbol: POLIS
+  cmcId: "2359"
+  name: Polis
+
+55:
+  gecko_id: zyx
+  tvl: 0
+  tokenSymbol: ZYX
+  cmcId: "6131"
+  name: ZYX
+
+8:
+  gecko_id: ubiq
+  tvl: 0
+  tokenSymbol: UBQ
+  cmcId: "588"
+  name: Ubiq
+
+71402:
+  gecko_id: null
+  tvl: 1812770.77051671
+  tokenSymbol: null
+  cmcId: null
+  name: GodwokenV1
+
+71394:
+  gecko_id: null
+  tvl: 66618.5407646962
+  tokenSymbol: null
+  cmcId: null
+  name: Godwoken
+
+820:
+  gecko_id: callisto
+  tvl: 4043.76326150155
+  tokenSymbol: CLO
+  cmcId: "2757"
+  name: Callisto
+
+33139:
+  gecko_id: apecoin
+  tvl: 11829544.1407511
+  tokenSymbol: APE
+  cmcId: "18876"
+  name: ApeChain
+
+52:
+  gecko_id: coinex-token
+  tvl: 399026.740053502
+  tokenSymbol: CET
+  cmcId: "2941"
+  name: CSC
+
+5551:
+  gecko_id: nahmii
+  tvl: 97046.9202824188
+  tokenSymbol: NII
+  cmcId: "4865"
+  name: Nahmii
+
+361:
+  gecko_id: theta-token
+  tvl: 1083058.77951141
+  tokenSymbol: THETA
+  cmcId: "2416"
+  name: Theta
+
+57:
+  gecko_id: syscoin
+  tvl: 0
+  tokenSymbol: SYS
+  cmcId: "541"
+  name: Syscoin
+
+80094:
+  gecko_id: berachain-bera
+  tvl: 387908975.509713
+  tokenSymbol: BERA
+  cmcId: "24647"
+  name: Berachain
+
+2741:
+  gecko_id: null
+  tvl: 53900589.4196347
+  tokenSymbol: null
+  cmcId: null
+  name: Abstract
+
+1625:
+  gecko_id: g-token
+  tvl: 4326156.13176017
+  tokenSymbol: G
+  cmcId: "32120"
+  name: Gravity by Galxe
+
+34443:
+  gecko_id: mode
+  tvl: 4018934.41851116
+  tokenSymbol: MODE
+  cmcId: "31016"
+  name: Mode
+
+388:
+  gecko_id: null
+  tvl: 15500408.1917718
+  tokenSymbol: null
+  cmcId: null
+  name: Cronos zkEVM
+
+2345:
+  gecko_id: null
+  tvl: 49310975.3867199
+  tokenSymbol: null
+  cmcId: null
+  name: Goat
+
+1868:
+  gecko_id: null
+  tvl: 129340391.571953
+  tokenSymbol: null
+  cmcId: null
+  name: Soneium
+
+810180:
+  gecko_id: zklink
+  tvl: 459951.64277304
+  tokenSymbol: ZKL
+  cmcId: null
+  name: zkLink Nova
+
+53935:
+  gecko_id: defi-kingdoms
+  tvl: 2215929.97329118
+  tokenSymbol: JEWEL
+  cmcId: "12319"
+  name: DFK
+
+7777777:
+  gecko_id: null
+  tvl: 81852.7640421644
+  tokenSymbol: null
+  cmcId: null
+  name: Zora
+
+2002:
+  gecko_id: null
+  tvl: 1145.6817721721
+  tokenSymbol: null
+  cmcId: null
+  name: Milkomeda A1
+
+2152:
+  gecko_id: findora
+  tvl: 53514.3843811286
+  tokenSymbol: FRA
+  cmcId: "4249"
+  name: Findora
+
+225:
+  gecko_id: latoken
+  tvl: 16594.9412822886
+  tokenSymbol: LA
+  cmcId: "2090"
+  name: Lachain
+
+55555:
+  gecko_id: null
+  tvl: 5281.87380826034
+  tokenSymbol: null
+  cmcId: null
+  name: REIchain
+
+42:
+  gecko_id: lukso-token-2
+  tvl: 84227.6355233152
+  tokenSymbol: LYX
+  cmcId: "27622"
+  name: LUKSO
+
+153153:
+  gecko_id: dione
+  tvl: 672564.527492011
+  tokenSymbol: DIONE
+  cmcId: "21473"
+  name: Odyssey
+
+87:
+  gecko_id: supernova
+  tvl: 0
+  tokenSymbol: SNT
+  cmcId: "15399"
+  name: Nova Network
+
+1231:
+  gecko_id: ultron
+  tvl: 336490.141516106
+  tokenSymbol: ULX
+  cmcId: "21524"
+  name: Ultron
+
+42766:
+  gecko_id: null
+  tvl: 115713.18558382
+  tokenSymbol: null
+  cmcId: null
+  name: Zkfair
+
+255:
+  gecko_id: kroma
+  tvl: 153627.449886651
+  tokenSymbol: KRO
+  cmcId: "27190"
+  name: Kroma
+
+6699:
+  gecko_id: ox-fun
+  tvl: 0
+  tokenSymbol: OX
+  cmcId: "29530"
+  name: OXFUN
+
+88888:
+  gecko_id: chiliz
+  tvl: 7010326.30008856
+  tokenSymbol: CHZ
+  cmcId: "4066"
+  name: Chiliz
+
+747:
+  gecko_id: flow
+  tvl: 78619595.7382462
+  tokenSymbol: FLOW
+  cmcId: "4558"
+  name: Flow
+
+2716446429837000:
+  gecko_id: null
+  tvl: 30147.0122351258
+  tokenSymbol: null
+  cmcId: null
+  name: DChain
+
+96:
+  gecko_id: bitkub-coin
+  tvl: 3493285.41859139
+  tokenSymbol: KUB
+  cmcId: "16093"
+  name: KUB
+
+888888888:
+  gecko_id: null
+  tvl: 216348.789015871
+  tokenSymbol: null
+  cmcId: null
+  name: Ancient8
+
+148:
+  gecko_id: shimmer
+  tvl: 650277.265154853
+  tokenSymbol: SMR
+  cmcId: "14801"
+  name: ShimmerEVM
+
+1890:
+  gecko_id: null
+  tvl: 396567.47831894
+  tokenSymbol: null
+  cmcId: null
+  name: LightLink
+
+1907:
+  gecko_id: bitcicoin
+  tvl: 5758.2584096833
+  tokenSymbol: BITCI
+  cmcId: "8357"
+  name: Bitcichain
+
+173:
+  gecko_id: null
+  tvl: 2521995.39934708
+  tokenSymbol: ENI
+  cmcId: null
+  name: ENI
+
+3637:
+  gecko_id: null
+  tvl: 7475077.09157228
+  tokenSymbol: null
+  cmcId: null
+  name: Botanix
+
+1135:
+  gecko_id: lisk
+  tvl: 14988171.6321465
+  tokenSymbol: LSK
+  cmcId: "1214"
+  name: Lisk
+
+232:
+  gecko_id: null
+  tvl: 518696.810037882
+  tokenSymbol: "-"
+  cmcId: null
+  name: Lens
+
+6900:
+  gecko_id: nibiru
+  tvl: 812916.560608007
+  tokenSymbol: NIBI
+  cmcId: "28508"
+  name: Nibiru
+
+5464:
+  gecko_id: saga-2
+  tvl: 7248562.98704154
+  tokenSymbol: SAGA
+  cmcId: "30372"
+  name: Saga
+
+480:
+  gecko_id: worldcoin-wld
+  tvl: 66056584.0129457
+  tokenSymbol: WLD
+  cmcId: null
+  name: World Chain
+
+3073:
+  gecko_id: movement
+  tvl: 77001517.7258785
+  tokenSymbol: MOVE
+  cmcId: "32452"
+  name: Movement
+
+420420:
+  gecko_id: kekchain
+  tvl: 0
+  tokenSymbol: KEK
+  cmcId: "21606"
+  name: Kekchain
+
+3776:
+  gecko_id: null
+  tvl: 19758.4571230364
+  tokenSymbol: null
+  cmcId: null
+  name: Astar zkEVM
+
+13371:
+  gecko_id: immutable-x
+  tvl: 13331246.9702588
+  tokenSymbol: IMX
+  cmcId: "10603"
+  name: Immutable zkEVM
+
+20402:
+  gecko_id: muu-inu
+  tvl: 0
+  tokenSymbol: MUU
+  cmcId: "22020"
+  name: MUUCHAIN
+
+1514:
+  gecko_id: story-2
+  tvl: 24864225.2889096
+  tokenSymbol: IP
+  cmcId: "35626"
+  name: Story
+
+98865:
+  gecko_id: null
+  tvl: 5362073.67783303
+  tokenSymbol: PLUME
+  cmcId: null
+  name: Plume (Deprecated)
+
+1729:
+  gecko_id: null
+  tvl: 24657522.4922601
+  tokenSymbol: null
+  cmcId: null
+  name: Reya Network
+
+1380012617:
+  gecko_id: null
+  tvl: 46306.7478846083
+  tokenSymbol: null
+  cmcId: null
+  name: Rari
+
+55244:
+  gecko_id: null
+  tvl: 311559.328926772
+  tokenSymbol: null
+  cmcId: null
+  name: Superposition
+
+41923:
+  gecko_id: edu-coin
+  tvl: 1386793.06694688
+  tokenSymbol: EDU
+  cmcId: "24613"
+  name: EDU Chain
+
+1996:
+  gecko_id: dream-machine-token
+  tvl: 119663.234682455
+  tokenSymbol: DMT
+  cmcId: "25653"
+  name: Sanko
+
+432204:
+  gecko_id: dexalot
+  tvl: 4562260.76817791
+  tokenSymbol: ALOT
+  cmcId: "18732"
+  name: Dexalot
+
+44:
+  gecko_id: darwinia-crab-network
+  tvl: 138311.503166038
+  tokenSymbol: CRAB
+  cmcId: "9243"
+  name: Crab
+
+78887:
+  gecko_id: null
+  tvl: 0
+  tokenSymbol: null
+  cmcId: null
+  name: Lung
+
+50104:
+  gecko_id: sophon
+  tvl: 11370801.8045672
+  tokenSymbol: SOPH
+  cmcId: null
+  name: Sophon
+
+777777:
+  gecko_id: winr-protocol
+  tvl: 718532.368950148
+  tokenSymbol: WINR
+  cmcId: "23681"
+  name: WINR
+
+8822:
+  gecko_id: null
+  tvl: 6977985.4139468
+  tokenSymbol: IOTA
+  cmcId: null
+  name: IOTA EVM
+
+8008:
+  gecko_id: null
+  tvl: 6579543.05710925
+  tokenSymbol: null
+  cmcId: null
+  name: Polynomial
+
+4488:
+  gecko_id: null
+  tvl: 47832.3162740891
+  tokenSymbol: HYDRA
+  cmcId: null
+  name: Hydra Chain
+
+1923:
+  gecko_id: null
+  tvl: 21349393.7886534
+  tokenSymbol: null
+  cmcId: null
+  name: Swellchain
+
+200901:
+  gecko_id: null
+  tvl: 448109482.675816
+  tokenSymbol: null
+  cmcId: null
+  name: Bitlayer
+
+185:
+  gecko_id: null
+  tvl: 81164.432020565
+  tokenSymbol: null
+  cmcId: null
+  name: Mint
+
+5330:
+  gecko_id: superseed
+  tvl: 992442.63894282
+  tokenSymbol: SUPR
+  cmcId: "36436"
+  name: Superseed
+
+11820:
+  gecko_id: artela-network
+  tvl: 0
+  tokenSymbol: ART
+  cmcId: null
+  name: Artela
+
+841:
+  gecko_id: taraxa
+  tvl: 2472929.37825243
+  tokenSymbol: TARA
+  cmcId: "8715"
+  name: Taraxa
+
+1424:
+  gecko_id: null
+  tvl: 0
+  tokenSymbol: null
+  cmcId: null
+  name: Perennial
+
+4337:
+  gecko_id: null
+  tvl: 2658666.67216974
+  tokenSymbol: MC
+  cmcId: null
+  name: Beam
+
+18686:
+  gecko_id: mxc
+  tvl: 13494.7682674189
+  tokenSymbol: MXC
+  cmcId: "3628"
+  name: Moonchain
+
+8811:
+  gecko_id: haven1
+  tvl: 666538.189763022
+  tokenSymbol: H1
+  cmcId: null
+  name: Haven1
+
+41455:
+  gecko_id: aleph-zero
+  tvl: 74.1207186192737
+  tokenSymbol: AZERO
+  cmcId: null
+  name: Aleph Zero EVM
+
+1440000:
+  gecko_id: null
+  tvl: 95638.5790147666
+  tokenSymbol: XRP
+  cmcId: null
+  name: XRPL EVM
+
+18888:
+  gecko_id: null
+  tvl: 885811.327232065
+  tokenSymbol: TKX
+  cmcId: null
+  name: Titan
+
+543210:
+  gecko_id: null
+  tvl: 403110.941183751
+  tokenSymbol: null
+  cmcId: null
+  name: Zero Network
+
+690:
+  gecko_id: null
+  tvl: 42446.7124706571
+  tokenSymbol: null
+  cmcId: null
+  name: Redstone
+
+322202:
+  gecko_id: parex
+  tvl: 61958.0569984251
+  tokenSymbol: PRX
+  cmcId: "18094"
+  name: Parex
+
+105105:
+  gecko_id: stratis
+  tvl: 67147.9108578674
+  tokenSymbol: STRAX
+  cmcId: "30168"
+  name: Stratis
+
+2355:
+  gecko_id: null
+  tvl: 14951.6667797124
+  tokenSymbol: "-"
+  cmcId: null
+  name: Silicon zkEVM
+
+20250217:
+  gecko_id: xphere
+  tvl: 4.93560545911078
+  tokenSymbol: XP
+  cmcId: "36056"
+  name: Xphere
+
+478:
+  gecko_id: null
+  tvl: 7799.74410584548
+  tokenSymbol: null
+  cmcId: null
+  name: Form Network
+
+6880:
+  gecko_id: null
+  tvl: 321092.60151188
+  tokenSymbol: MTT
+  cmcId: null
+  name: MTT Network
+
+7225878:
+  gecko_id: null
+  tvl: 139291.045792723
+  tokenSymbol: null
+  cmcId: null
+  name: Saakuru
+
+47763:
+  gecko_id: null
+  tvl: 25454.0662936198
+  tokenSymbol: "-"
+  cmcId: null
+  name: Neo X Mainnet
+
+52014:
+  gecko_id: electroneum
+  tvl: 352548.994548254
+  tokenSymbol: ETN
+  cmcId: "2137"
+  name: Electroneum
+
+8668:
+  gecko_id: hela
+  tvl: 119031.962374735
+  tokenSymbol: HELA
+  cmcId: "2137"
+  name: HeLa
+
+698:
+  gecko_id: null
+  tvl: 149312.453319305
+  tokenSymbol: null
+  cmcId: null
+  name: Matchain
+
+360:
+  gecko_id: null
+  tvl: 118412.360958506
+  tokenSymbol: null
+  cmcId: null
+  name: Shape
+
+42420:
+  gecko_id: null
+  tvl: 132200.710537704
+  tokenSymbol: null
+  cmcId: null
+  name: Asset Chain
+
+207:
+  gecko_id: vinuchain
+  tvl: 15934.1816779233
+  tokenSymbol: VC
+  cmcId: "28580"
+  name: VinuChain
+
+4158:
+  gecko_id: crossfi-2
+  tvl: 68791.8094991548
+  tokenSymbol: XFI
+  cmcId: "26202"
+  name: CrossFi
+
+181:
+  gecko_id: water-3
+  tvl: 4.38327927428218
+  tokenSymbol: WATER
+  cmcId: "32282"
+  name: Waterfall
+
+6001:
+  gecko_id: bouncebit
+  tvl: 72839908.4303313
+  tokenSymbol: BB
+  cmcId: "30746"
+  name: BounceBit
+
+7560:
+  gecko_id: null
+  tvl: 72140.6620517935
+  tokenSymbol: null
+  cmcId: null
+  name: Cyber
+
+254:
+  gecko_id: swan-chain
+  tvl: 19708.7422939203
+  tokenSymbol: SWAN
+  cmcId: null
+  name: Swan
+
+9999999:
+  gecko_id: fluence-2
+  tvl: 3052091.42048134
+  tokenSymbol: FLT
+  cmcId: "30097"
+  name: Fluence
+
+256256:
+  gecko_id: caduceus
+  tvl: 0
+  tokenSymbol: CMP
+  cmcId: "20056"
+  name: CMP
+
+253368190:
+  gecko_id: null
+  tvl: 0
+  tokenSymbol: null
+  cmcId: null
+  name: Flame
+
+16718:
+  gecko_id: amber
+  tvl: 45317.2639541573
+  tokenSymbol: AMB
+  cmcId: "2081"
+  name: AirDAO
+
+5112:
+  gecko_id: null
+  tvl: 9742.31384973655
+  tokenSymbol: null
+  cmcId: null
+  name: Ham
+
+16116:
+  gecko_id: null
+  tvl: 506276.529623909
+  tokenSymbol: null
+  cmcId: null
+  name: DeFiVerse
+
+23294:
+  gecko_id: null
+  tvl: 4568096.2939464
+  tokenSymbol: ROSE
+  cmcId: null
+  name: Oasis Sapphire
+
+"2410":
+  gecko_id: null
+  tvl: 8503322.41588493
+  tokenSymbol: null
+  cmcId: null
+  name: K2
+
+1130:
+  gecko_id: null
+  tvl: 160797.317815048
+  tokenSymbol: null
+  cmcId: null
+  name: DeFiChain EVM
+
+277:
+  gecko_id: prometeus
+  tvl: 1091619.14003314
+  tokenSymbol: PROM
+  cmcId: null
+  name: Prom
+
+"3109":
+  gecko_id: null
+  tvl: 462870.7874009
+  tokenSymbol: null
+  cmcId: null
+  name: SatoshiVM
+
+7171:
+  gecko_id: bitrock
+  tvl: 68881.4764529843
+  tokenSymbol: BROCK
+  cmcId: "27606"
+  name: Bitrock
+
+7070:
+  gecko_id: planq
+  tvl: 17741.858919486
+  tokenSymbol: PLQ
+  cmcId: "28804"
+  name: Planq
+
+274:
+  gecko_id: la-coin
+  tvl: 45254.7259660803
+  tokenSymbol: LAC
+  cmcId: null
+  name: LaChain Network
+
+648:
+  gecko_id: endurance
+  tvl: 57912.615215356
+  tokenSymbol: ACE
+  cmcId: "28674"
+  name: Endurance
+
+111188:
+  gecko_id: re-al
+  tvl: 0
+  tokenSymbol: RWA
+  cmcId: null
+  name: re.al
+
+16507:
+  gecko_id: genesys
+  tvl: 86729.3314215223
+  tokenSymbol: GSYS
+  cmcId: "27940"
+  name: Genesys
+
+2649:
+  gecko_id: null
+  tvl: 140739.834168673
+  tokenSymbol: null
+  cmcId: null
+  name: AILayer
+
+228:
+  gecko_id: mind-network
+  tvl: 0
+  tokenSymbol: FHE
+  cmcId: null
+  name: Mind Network
+
+# This chain is not included in the original data, but it is a known EVM-compatible chain
+369:
+  gecko_id: pulsechain
+  tvl: 379131155.449014
+  tokenSymbol: PLS
+  cmcId: "11145"
+  name: PulseChain
+  nativeTokenAddress: "0xA1077a294dDE1B09bB078844df40758a5D0f9a27"
+
+# Note: Some chains have null chainId values and cannot be included in this dictionary
+# These include: X Layer, Hyperliquid L1, XDC, Kava, CORE, Solana, Conflux, Binance, 
+# Litecoin, Doge, Bitcoin, Ontology, Aptos, Flare, Bifrost Network, Terra Classic, 
+# Eclipse, Zilliqa, NEO, Secret, and many others listed in the original data
