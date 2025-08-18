@@ -122,86 +122,128 @@ export default function App() {
     return chainIdInt.toString();
   };
 
-  // Fetch token data from CoinGecko API
-  const fetchTokenData = async (contractAddress, chainId) => {
-    console.log(`[DEBUG] Fetching token data for contract: ${contractAddress}, chainId: ${chainId}`);
+  // Cache for token data to avoid repeated API calls
+  const tokenCache = useMemo(() => new Map(), []);
+  
+  // Rate limiting queue for API requests
+  const apiQueue = useMemo(() => [], []);
+  const [isProcessingQueue, setIsProcessingQueue] = useState(false);
+
+  // Process API queue with delays to respect rate limits
+  const processApiQueue = async () => {
+    if (isProcessingQueue || apiQueue.length === 0) return;
     
-    // Map chainId to CoinGecko platform ID
-    const chainToPlatformMap = {
-      '1': 'ethereum',
-      '56': 'binance-smart-chain',
-      '137': 'polygon-pos',
-      '43114': 'avalanche',
-      '250': 'fantom',
-      '42161': 'arbitrum-one',
-      '10': 'optimistic-ethereum',
-      '369': 'pulsechain',  // PulseChain platform ID
-      // Add more mappings as needed
-    };
+    setIsProcessingQueue(true);
     
-    const platformId = chainToPlatformMap[chainId];
-    if (!platformId) {
-      console.error(`[DEBUG] No platform mapping found for chainId: ${chainId}`);
-      return null;
-    }
-    
-    try {
-      const url = `https://api.coingecko.com/api/v3/coins/${platformId}/contract/${contractAddress}`;
-      console.log(`[DEBUG] CoinGecko API URL: ${url}`);
+    while (apiQueue.length > 0) {
+      const { contractAddress, chainId, resolve, reject } = apiQueue.shift();
+      const cacheKey = `${chainId}-${contractAddress.toLowerCase()}`;
       
-      const response = await fetch(url);
-      console.log(`[DEBUG] Response status: ${response.status}`);
+      // Check cache first
+      if (tokenCache.has(cacheKey)) {
+        resolve(tokenCache.get(cacheKey));
+        continue;
+      }
       
-      if (response.ok) {
-        const data = await response.json();
-        console.log(`[DEBUG] Token data received:`, data);
-        
-        // Extract decimals and chain info from detail_platforms
-        let decimals = 18; // default fallback
-        let chainName = '';
-        
-        if (data.detail_platforms) {
-          // Find the matching platform/chain
-          const platforms = Object.keys(data.detail_platforms);
-          console.log(`[DEBUG] Available platforms:`, platforms);
-          
-          const platform = platforms.find(key => {
-            const platformData = data.detail_platforms[key];
-            return platformData.contract_address && 
-                   platformData.contract_address.toLowerCase() === contractAddress.toLowerCase();
-          });
-          
-          if (platform && data.detail_platforms[platform]) {
-            decimals = data.detail_platforms[platform].decimal_place || 18;
-            chainName = platform;
-            console.log(`[DEBUG] Found matching platform: ${platform}, decimals: ${decimals}`);
-          } else {
-            console.warn(`[DEBUG] No matching platform found for contract ${contractAddress}`);
-          }
-        }
-        
-        const tokenInfo = {
-          name: data.name,
-          symbol: data.symbol,
-          image: data.image?.small || data.image?.thumb,
-          price: data.market_data?.current_price?.usd || 0,
-          decimals: decimals,
-          chainName: chainName
+      try {
+        // Map chainId to CoinGecko platform ID
+        const chainToPlatformMap = {
+          '1': 'ethereum',
+          '56': 'binance-smart-chain',
+          '137': 'polygon-pos',
+          '43114': 'avalanche',
+          '250': 'fantom',
+          '42161': 'arbitrum-one',
+          '10': 'optimistic-ethereum',
+          '369': 'pulsechain',  // PulseChain platform ID
+          // Add more mappings as needed
         };
         
-        console.log(`[DEBUG] Processed token info:`, tokenInfo);
-        return tokenInfo;
-      } else {
-        console.error(`[DEBUG] Failed to fetch token data. Status: ${response.status}`);
-        const errorText = await response.text();
-        console.error(`[DEBUG] Error response:`, errorText);
+        const platformId = chainToPlatformMap[chainId];
+        if (!platformId) {
+          tokenCache.set(cacheKey, null);
+          resolve(null);
+          continue;
+        }
+        
+        const url = `https://api.coingecko.com/api/v3/coins/${platformId}/contract/${contractAddress}`;
+        
+        const response = await fetch(url);
+        
+        if (response.status === 429) {
+          // Put the request back at the front of the queue
+          apiQueue.unshift({ contractAddress, chainId, resolve, reject });
+          // Wait 5 seconds before processing next request
+          await new Promise(resolve => setTimeout(resolve, 5000));
+          continue;
+        }
+        
+        if (response.ok) {
+          const data = await response.json();
+          
+          // Extract decimals and chain info from detail_platforms
+          let decimals = 18; // default fallback
+          let chainName = '';
+          
+          if (data.detail_platforms) {
+            // Find the matching platform/chain
+            const platforms = Object.keys(data.detail_platforms);
+            
+            const platform = platforms.find(key => {
+              const platformData = data.detail_platforms[key];
+              return platformData.contract_address && 
+                     platformData.contract_address.toLowerCase() === contractAddress.toLowerCase();
+            });
+            
+            if (platform && data.detail_platforms[platform]) {
+              decimals = data.detail_platforms[platform].decimal_place || 18;
+              chainName = platform;
+            }
+          }
+          
+          const tokenInfo = {
+            name: data.name,
+            symbol: data.symbol,
+            image: data.image?.small || data.image?.thumb,
+            price: data.market_data?.current_price?.usd || 0,
+            decimals: decimals,
+            chainName: chainName
+          };
+          
+          // Cache the result
+          tokenCache.set(cacheKey, tokenInfo);
+          resolve(tokenInfo);
+        } else {
+          // Cache null result to avoid repeated failed requests
+          tokenCache.set(cacheKey, null);
+          resolve(null);
+        }
+      } catch (error) {
+        tokenCache.set(cacheKey, null);
+        resolve(null);
       }
-    } catch (error) {
-      console.error(`[DEBUG] Error fetching token data for ${contractAddress}:`, error);
+      
+      // Add delay between requests to respect rate limits (1 request per second)
+      await new Promise(resolve => setTimeout(resolve, 1000));
     }
     
-    console.warn(`[DEBUG] Returning null for contract ${contractAddress}`);
-    return null;
+    setIsProcessingQueue(false);
+  };
+
+  // Fetch token data from CoinGecko API with rate limiting
+  const fetchTokenData = async (contractAddress, chainId) => {
+    const cacheKey = `${chainId}-${contractAddress.toLowerCase()}`;
+    
+    // Check cache first
+    if (tokenCache.has(cacheKey)) {
+      return tokenCache.get(cacheKey);
+    }
+    
+    // Add to queue and process
+    return new Promise((resolve, reject) => {
+      apiQueue.push({ contractAddress, chainId, resolve, reject });
+      processApiQueue();
+    });
   };
 
   // Load token data for all ERC20 contracts and native token
@@ -211,43 +253,34 @@ export default function App() {
     const chainId = getChainId();
     const chainData = chainId ? chainsData[chainId] : null;
     
-    console.log(`[DEBUG] Loading tokens for chainId: ${chainId}`, chainData);
-    
     // Get ERC20 token contracts
     const tokenContracts = decodedLogs
       .filter(log => log.isDecoded && log.eventName === 'Transfer')
       .map(log => log.address)
       .filter((address, index, self) => self.indexOf(address) === index); // Remove duplicates
 
-    console.log(`[DEBUG] ERC20 token contracts found:`, tokenContracts);
-
     // Add native token address if available and not already included
     const allTokens = [...tokenContracts];
     if (chainData?.nativeTokenAddress && !allTokens.includes(chainData.nativeTokenAddress)) {
       allTokens.push(chainData.nativeTokenAddress);
-      console.log(`[DEBUG] Added native token address: ${chainData.nativeTokenAddress}`);
-    } else if (!chainData?.nativeTokenAddress) {
-      console.warn(`[DEBUG] No native token address found for chain ${chainId}`);
     }
 
-    console.log(`[DEBUG] All tokens to load:`, allTokens);
-
     allTokens.forEach(async (contractAddress) => {
-      if (tokenData[contractAddress] || tokenLoading[contractAddress]) {
-        console.log(`[DEBUG] Skipping ${contractAddress} - already loaded or loading`);
+      // Use a normalized key to prevent duplicate loading due to case sensitivity
+      const normalizedAddress = contractAddress.toLowerCase();
+      
+      if (tokenData[normalizedAddress] || tokenLoading[normalizedAddress]) {
         return;
       }
       
-      console.log(`[DEBUG] Starting to load token data for: ${contractAddress}`);
-      setTokenLoading(prev => ({ ...prev, [contractAddress]: true }));
+      setTokenLoading(prev => ({ ...prev, [normalizedAddress]: true }));
       
       const data = await fetchTokenData(contractAddress, chainId);
       
-      console.log(`[DEBUG] Token data loaded for ${contractAddress}:`, data);
-      setTokenData(prev => ({ ...prev, [contractAddress]: data }));
-      setTokenLoading(prev => ({ ...prev, [contractAddress]: false }));
+      setTokenData(prev => ({ ...prev, [normalizedAddress]: data }));
+      setTokenLoading(prev => ({ ...prev, [normalizedAddress]: false }));
     });
-  }, [decodedLogs, transactionData, tokenData, tokenLoading]);
+  }, [decodedLogs, transactionData]); // Removed tokenData and tokenLoading dependencies to prevent infinite loop
 
   // Load ethers.js from a CDN
   useEffect(() => {
@@ -945,7 +978,7 @@ export default function App() {
                             const chainData = chainId ? chainsData[chainId] : null;
                             const chainName = chainData?.name;
                             const nativeTokenAddress = chainData?.nativeTokenAddress;
-                            const nativeTokenData = nativeTokenAddress ? tokenData[nativeTokenAddress] : null;
+                            const nativeTokenData = nativeTokenAddress ? tokenData[nativeTokenAddress.toLowerCase()] : null;
                             
                             // Calculate USD value if native token price is available
                             const feeInNative = ((parseInt(transactionReceipt.gasUsed, 16) * parseInt(transactionReceipt.effectiveGasPrice, 16)) / 1e18);
@@ -1040,7 +1073,7 @@ export default function App() {
                             const chainId = structuredTransactionData?.chainId;
                             const chainData = chainId ? chainsData[chainId] : null;
                             const nativeTokenAddress = chainData?.nativeTokenAddress;
-                            const nativeTokenData = nativeTokenAddress ? tokenData[nativeTokenAddress] : null;
+                            const nativeTokenData = nativeTokenAddress ? tokenData[nativeTokenAddress.toLowerCase()] : null;
                             const chainName = chainData?.name;
                             
                             // Calculate USD value
@@ -1248,9 +1281,10 @@ export default function App() {
                         const value = log.args.value || '0';
                         const contractAddress = log.address || 'Unknown';
                         
-                        // Get token data
-                        const token = tokenData[contractAddress];
-                        const isTokenLoading = tokenLoading[contractAddress];
+                        // Get token data (use normalized address)
+                        const normalizedContractAddress = contractAddress.toLowerCase();
+                        const token = tokenData[normalizedContractAddress];
+                        const isTokenLoading = tokenLoading[normalizedContractAddress];
                         
                         // Format the value - use wei initially, then proper decimals when available
                         let formattedValue;
@@ -1428,7 +1462,7 @@ export default function App() {
                                     const chainId = structuredTransactionData?.chainId;
                                     const chainData = chainId ? chainsData[chainId] : null;
                                     const nativeTokenAddress = chainData?.nativeTokenAddress;
-                                    const nativeTokenData = nativeTokenAddress ? tokenData[nativeTokenAddress] : null;
+                                    const nativeTokenData = nativeTokenAddress ? tokenData[nativeTokenAddress.toLowerCase()] : null;
                                     
                                     // Format native token amount with proper decimals
                                     let formattedValue;
@@ -1510,9 +1544,10 @@ export default function App() {
                               const value = log.args.value || '0';
                               const contractAddress = log.address || 'Unknown';
                               
-                              // Get token data
-                              const token = tokenData[contractAddress];
-                              const isTokenLoading = tokenLoading[contractAddress];
+                              // Get token data (use normalized address)
+                              const normalizedContractAddress = contractAddress.toLowerCase();
+                              const token = tokenData[normalizedContractAddress];
+                              const isTokenLoading = tokenLoading[normalizedContractAddress];
                               
                               // Format the value - use wei initially, then proper decimals when available
                               let formattedValue;
@@ -1626,9 +1661,10 @@ export default function App() {
                               const value = log.args.value || '0';
                               const contractAddress = log.address || 'Unknown';
                               
-                              // Get token data
-                              const token = tokenData[contractAddress];
-                              const isTokenLoading = tokenLoading[contractAddress];
+                              // Get token data (use normalized address)
+                              const normalizedContractAddress = contractAddress.toLowerCase();
+                              const token = tokenData[normalizedContractAddress];
+                              const isTokenLoading = tokenLoading[normalizedContractAddress];
                               
                               // Format the value - use wei initially, then proper decimals when available
                               let formattedValue;
