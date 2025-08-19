@@ -1,6 +1,15 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { allABIs } from './abis';
 import { chainsData } from './data/chains.js';
+import { useTokenData } from './hooks/useTokenData';
+import { 
+  TokenDisplay, 
+  TokenValueDisplay,
+  TokenImage,
+  TokenSymbol,
+  CopyAddressButton,
+  LoadingSpinner
+} from './components/TokenComponents';
 
 // Ethers.js is loaded via a script tag in the HTML wrapper.
 // We access it via `window.ethers`.
@@ -110,8 +119,6 @@ export default function App() {
   const [error, setError] = useState(null);
   const [isEthersReady, setIsEthersReady] = useState(false);
   const [showStructuredView, setShowStructuredView] = useState(true);
-  const [tokenData, setTokenData] = useState({});
-  const [tokenLoading, setTokenLoading] = useState({});
 
   // Get chain ID from transaction data
   const getChainId = () => {
@@ -122,138 +129,14 @@ export default function App() {
     return chainIdInt.toString();
   };
 
-  // Cache for token data to avoid repeated API calls
-  const tokenCache = useMemo(() => new Map(), []);
-  
-  // Rate limiting queue for API requests
-  const apiQueue = useMemo(() => [], []);
-  const [isProcessingQueue, setIsProcessingQueue] = useState(false);
-
-  // Process API queue with delays to respect rate limits
-  const processApiQueue = async () => {
-    if (isProcessingQueue || apiQueue.length === 0) return;
-    
-    setIsProcessingQueue(true);
-    
-    while (apiQueue.length > 0) {
-      const { contractAddress, chainId, resolve, reject } = apiQueue.shift();
-      const cacheKey = `${chainId}-${contractAddress.toLowerCase()}`;
-      
-      // Check cache first
-      if (tokenCache.has(cacheKey)) {
-        resolve(tokenCache.get(cacheKey));
-        continue;
-      }
-      
-      try {
-        // Map chainId to CoinGecko platform ID
-        const chainToPlatformMap = {
-          '1': 'ethereum',
-          '56': 'binance-smart-chain',
-          '137': 'polygon-pos',
-          '43114': 'avalanche',
-          '250': 'fantom',
-          '42161': 'arbitrum-one',
-          '10': 'optimistic-ethereum',
-          '369': 'pulsechain',  // PulseChain platform ID
-          // Add more mappings as needed
-        };
-        
-        const platformId = chainToPlatformMap[chainId];
-        if (!platformId) {
-          tokenCache.set(cacheKey, null);
-          resolve(null);
-          continue;
-        }
-        
-        const url = `https://api.coingecko.com/api/v3/coins/${platformId}/contract/${contractAddress}`;
-        
-        const response = await fetch(url);
-        
-        if (response.status === 429) {
-          // Put the request back at the front of the queue
-          apiQueue.unshift({ contractAddress, chainId, resolve, reject });
-          // Wait 5 seconds before processing next request
-          await new Promise(resolve => setTimeout(resolve, 5000));
-          continue;
-        }
-        
-        if (response.ok) {
-          const data = await response.json();
-          
-          // Extract decimals and chain info from detail_platforms
-          let decimals = 18; // default fallback
-          let chainName = '';
-          
-          if (data.detail_platforms) {
-            // Find the matching platform/chain
-            const platforms = Object.keys(data.detail_platforms);
-            
-            const platform = platforms.find(key => {
-              const platformData = data.detail_platforms[key];
-              return platformData.contract_address && 
-                     platformData.contract_address.toLowerCase() === contractAddress.toLowerCase();
-            });
-            
-            if (platform && data.detail_platforms[platform]) {
-              decimals = data.detail_platforms[platform].decimal_place || 18;
-              chainName = platform;
-            }
-          }
-          
-          const tokenInfo = {
-            name: data.name,
-            symbol: data.symbol,
-            image: data.image?.small || data.image?.thumb,
-            price: data.market_data?.current_price?.usd || 0,
-            decimals: decimals,
-            chainName: chainName
-          };
-          
-          // Cache the result
-          tokenCache.set(cacheKey, tokenInfo);
-          resolve(tokenInfo);
-        } else {
-          // Cache null result to avoid repeated failed requests
-          tokenCache.set(cacheKey, null);
-          resolve(null);
-        }
-      } catch (error) {
-        tokenCache.set(cacheKey, null);
-        resolve(null);
-      }
-      
-      // Add delay between requests to respect rate limits (1 request per second)
-      await new Promise(resolve => setTimeout(resolve, 1000));
-    }
-    
-    setIsProcessingQueue(false);
-  };
-
-  // Fetch token data from CoinGecko API with rate limiting
-  const fetchTokenData = async (contractAddress, chainId) => {
-    const cacheKey = `${chainId}-${contractAddress.toLowerCase()}`;
-    
-    // Check cache first
-    if (tokenCache.has(cacheKey)) {
-      return tokenCache.get(cacheKey);
-    }
-    
-    // Add to queue and process
-    return new Promise((resolve, reject) => {
-      apiQueue.push({ contractAddress, chainId, resolve, reject });
-      processApiQueue();
-    });
-  };
-
-  // Load token data for all ERC20 contracts and native token
-  useEffect(() => {
-    if (!transactionData) return;
+  // Get unique token addresses from decoded logs
+  const tokenAddresses = useMemo(() => {
+    if (!decodedLogs.length) return [];
     
     const chainId = getChainId();
     const chainData = chainId ? chainsData[chainId] : null;
     
-    // Get ERC20 token contracts
+    // Get ERC20 token contracts from Transfer events
     const tokenContracts = decodedLogs
       .filter(log => log.isDecoded && log.eventName === 'Transfer')
       .map(log => log.address)
@@ -265,22 +148,11 @@ export default function App() {
       allTokens.push(chainData.nativeTokenAddress);
     }
 
-    allTokens.forEach(async (contractAddress) => {
-      // Use a normalized key to prevent duplicate loading due to case sensitivity
-      const normalizedAddress = contractAddress.toLowerCase();
-      
-      if (tokenData[normalizedAddress] || tokenLoading[normalizedAddress]) {
-        return;
-      }
-      
-      setTokenLoading(prev => ({ ...prev, [normalizedAddress]: true }));
-      
-      const data = await fetchTokenData(contractAddress, chainId);
-      
-      setTokenData(prev => ({ ...prev, [normalizedAddress]: data }));
-      setTokenLoading(prev => ({ ...prev, [normalizedAddress]: false }));
-    });
-  }, [decodedLogs, transactionData]); // Removed tokenData and tokenLoading dependencies to prevent infinite loop
+    return allTokens;
+  }, [decodedLogs, transactionData]);
+
+  // Use the token data hook
+  const { tokenData, tokenLoading, loadTokenData } = useTokenData(tokenAddresses, getChainId());
 
   // Load ethers.js from a CDN
   useEffect(() => {
@@ -1285,34 +1157,6 @@ export default function App() {
                         const normalizedContractAddress = contractAddress.toLowerCase();
                         const token = tokenData[normalizedContractAddress];
                         const isTokenLoading = tokenLoading[normalizedContractAddress];
-                        
-                        // Format the value - use wei initially, then proper decimals when available
-                        let formattedValue;
-                        let tokenAmount = 0;
-                        
-                        if (token && token.decimals !== undefined) {
-                          // Use actual token decimals from CoinGecko
-                          try {
-                            const decimals = token.decimals;
-                            const divisor = window.ethers.BigNumber.from(10).pow(decimals);
-                            const valueInTokens = window.ethers.BigNumber.from(value).div(divisor);
-                            const remainder = window.ethers.BigNumber.from(value).mod(divisor);
-                            const decimalPart = remainder.toString().padStart(decimals, '0');
-                            formattedValue = `${valueInTokens.toString()}.${decimalPart}`.replace(/\.?0+$/, '');
-                            tokenAmount = parseFloat(formattedValue);
-                          } catch (err) {
-                            // Fallback to wei
-                            formattedValue = `${value} wei`;
-                            tokenAmount = 0;
-                          }
-                        } else {
-                          // Display in wei until we get token data
-                          formattedValue = `${value} wei`;
-                          tokenAmount = 0;
-                        }
-
-                        // Calculate USD value
-                        const usdValue = token?.price ? (tokenAmount * token.price) : 0;
 
                         // Get checksummed addresses
                         const checksummedFrom = from !== 'Unknown' ? window.ethers.utils.getAddress(from) : from;
@@ -1338,52 +1182,7 @@ export default function App() {
                           </span>
                         );
 
-                        // Token display component
-                        const TokenDisplay = () => {
-                          if (isTokenLoading) {
-                            return (
-                              <span className="inline-flex items-center space-x-1">
-                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-green-500"></div>
-                                <span className="font-mono text-xs">Loading...</span>
-                              </span>
-                            );
-                          }
-                          
-                          if (token) {
-                            const tooltipText = `${checksummedContract}${token.chainName ? ` (${token.chainName})` : ''}`;
-                            return (
-                              <span className="inline-flex items-center space-x-1">
-                                {token.image && (
-                                  <img 
-                                    src={token.image} 
-                                    alt={token.name}
-                                    className="w-4 h-4 rounded-full"
-                                    title={tooltipText}
-                                  />
-                                )}
-                                <span 
-                                  className="font-mono text-xs font-semibold text-green-600"
-                                  title={`${token.name}${token.chainName ? ` on ${token.chainName}` : ''}`}
-                                >
-                                  {token.symbol?.toUpperCase()}
-                                </span>
-                                <button 
-                                  onClick={() => navigator.clipboard?.writeText(checksummedContract)}
-                                  className="text-gray-400 hover:text-green-500 transition-colors"
-                                  title="Copy contract address"
-                                >
-                                  <i className="fa-regular fa-copy text-xs"></i>
-                                </button>
-                              </span>
-                            );
-                          }
-                          
-                          // Fallback to address display
-                          return formatAddress(
-                            `${checksummedContract.slice(0, 6)}...${checksummedContract.slice(-4)}`,
-                            checksummedContract
-                          );
-                        };
+                        // Token display component is now handled by our modular component
 
                         return (
                           <div key={index} className="bg-white border border-green-200 rounded-lg p-4 shadow-sm">
@@ -1399,17 +1198,23 @@ export default function App() {
                                 checksummedTo
                               )}
                               <span className="text-gray-700 font-medium"> For: </span>
-                              <span className="font-mono font-semibold text-green-700">{formattedValue}</span>
-                              {usdValue > 0 && (
-                                <span 
-                                  className="text-green-600 font-semibold"
-                                  title={`$${token.price?.toFixed(6)} USD per token`}
-                                >
-                                  {' '}(${usdValue.toFixed(2)})
-                                </span>
-                              )}
+                              <TokenValueDisplay
+                                token={token}
+                                rawValue={value}
+                                contractAddress={contractAddress}
+                                isLoading={isTokenLoading}
+                                amountClassName="font-mono font-semibold text-green-700"
+                                usdClassName="text-green-600 font-semibold"
+                              />
                               <span className="text-gray-700 font-medium"> </span>
-                              <TokenDisplay />
+                              <TokenDisplay
+                                token={token}
+                                contractAddress={contractAddress}
+                                isLoading={isTokenLoading}
+                                imageSize="w-4 h-4"
+                                symbolClassName="font-mono text-xs font-semibold text-green-600"
+                                containerClassName="inline-flex items-center space-x-1"
+                              />
                             </div>
                           </div>
                         );
@@ -1548,88 +1353,30 @@ export default function App() {
                               const normalizedContractAddress = contractAddress.toLowerCase();
                               const token = tokenData[normalizedContractAddress];
                               const isTokenLoading = tokenLoading[normalizedContractAddress];
-                              
-                              // Format the value - use wei initially, then proper decimals when available
-                              let formattedValue;
-                              let tokenAmount = 0;
-                              
-                              if (token && token.decimals !== undefined) {
-                                // Use actual token decimals from CoinGecko
-                                try {
-                                  const decimals = token.decimals;
-                                  const divisor = window.ethers.BigNumber.from(10).pow(decimals);
-                                  const valueInTokens = window.ethers.BigNumber.from(value).div(divisor);
-                                  const remainder = window.ethers.BigNumber.from(value).mod(divisor);
-                                  const decimalPart = remainder.toString().padStart(decimals, '0');
-                                  formattedValue = `${valueInTokens.toString()}.${decimalPart}`.replace(/\.?0+$/, '');
-                                  tokenAmount = parseFloat(formattedValue);
-                                } catch (err) {
-                                  // Fallback to wei
-                                  formattedValue = `${value} wei`;
-                                  tokenAmount = 0;
-                                }
-                              } else {
-                                // Display in wei until we get token data
-                                formattedValue = `${value} wei`;
-                                tokenAmount = 0;
-                              }
-
-                              // Calculate USD value
-                              const usdValue = token?.price ? (tokenAmount * token.price) : 0;
-
-                              // Get checksummed address
-                              const checksummedContract = contractAddress !== 'Unknown' ? window.ethers.utils.getAddress(contractAddress) : contractAddress;
 
                               return (
                                 <div key={index} className="bg-white border border-blue-200 rounded-lg p-4 shadow-sm">
                                   <div className="flex items-center justify-between">
                                     <div className="flex items-center space-x-3">
                                       <i className="fas fa-arrow-right text-red-500"></i>
-                                      <span className="font-mono text-sm font-semibold text-gray-800">{formattedValue}</span>
-                                      {usdValue > 0 && (
-                                        <span 
-                                          className="text-blue-600 font-semibold text-xs"
-                                          title={`$${token.price?.toFixed(6)} USD per token`}
-                                        >
-                                          (${usdValue.toFixed(2)})
-                                        </span>
-                                      )}
+                                      <TokenValueDisplay
+                                        token={token}
+                                        rawValue={value}
+                                        contractAddress={contractAddress}
+                                        isLoading={isTokenLoading}
+                                        amountClassName="font-mono text-sm font-semibold text-gray-800"
+                                        usdClassName="text-blue-600 font-semibold text-xs"
+                                      />
                                     </div>
                                     <div className="flex items-center space-x-1">
-                                      {isTokenLoading ? (
-                                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
-                                      ) : token ? (
-                                        <>
-                                          {token.image && (
-                                            <img 
-                                              src={token.image} 
-                                              alt={token.name}
-                                              className="w-4 h-4 rounded-full"
-                                              title={`${checksummedContract}${token.chainName ? ` (${token.chainName})` : ''}`}
-                                            />
-                                          )}
-                                          <span 
-                                            className="font-mono text-xs font-semibold text-blue-600"
-                                            title={`${token.name}${token.chainName ? ` on ${token.chainName}` : ''}`}
-                                          >
-                                            {token.symbol?.toUpperCase()}
-                                          </span>
-                                        </>
-                                      ) : (
-                                        <span 
-                                          className="font-mono text-xs"
-                                          title={checksummedContract}
-                                        >
-                                          {checksummedContract}
-                                        </span>
-                                      )}
-                                      <button 
-                                        onClick={() => navigator.clipboard?.writeText(checksummedContract)}
-                                        className="text-gray-400 hover:text-blue-500 transition-colors"
-                                        title="Copy contract address"
-                                      >
-                                        <i className="fa-regular fa-copy text-xs"></i>
-                                      </button>
+                                      <TokenDisplay
+                                        token={token}
+                                        contractAddress={contractAddress}
+                                        isLoading={isTokenLoading}
+                                        imageSize="w-4 h-4"
+                                        symbolClassName="font-mono text-xs font-semibold text-blue-600"
+                                        containerClassName="inline-flex items-center space-x-1"
+                                      />
                                     </div>
                                   </div>
                                 </div>
@@ -1654,9 +1401,122 @@ export default function App() {
                           Tokens Received by Sender
                         </h3>
                         <div className="space-y-3">
+                          {/* Debug logging for transaction sender */}
+                          {(() => {
+                            console.log('Transaction sender (from):', structuredTransactionData?.from);
+                            console.log('All withdrawal events:', decodedLogs.filter(log => log.isDecoded && log.eventName === 'Withdrawal'));
+                            return null;
+                          })()}
+                          
+                          {/* Native Token Received (if there's a withdrawal event) */}
+                          {decodedLogs
+                            .filter(log => {
+                              if (!log.isDecoded || log.eventName !== 'Withdrawal') return false;
+                              
+                              try {
+                                const logSrc = log.args.src;
+                                const txFrom = structuredTransactionData.from;
+                                
+                                // Debug logging
+                                console.log('Withdrawal event found:', {
+                                  logSrc,
+                                  txFrom,
+                                  srcLower: logSrc?.toLowerCase(),
+                                  fromLower: txFrom?.toLowerCase(),
+                                  match: logSrc?.toLowerCase() === txFrom?.toLowerCase()
+                                });
+                                
+                                // Compare addresses in lowercase to avoid case sensitivity issues
+                                return logSrc?.toLowerCase() === txFrom?.toLowerCase();
+                              } catch (err) {
+                                console.error('Error comparing withdrawal addresses:', err);
+                                return false;
+                              }
+                            })
+                            .map((log, index) => {
+                              const value = log.args.wad || '0';
+                              
+                              // Get chain and native token data
+                              const chainId = structuredTransactionData?.chainId;
+                              const chainData = chainId ? chainsData[chainId] : null;
+                              const nativeTokenAddress = chainData?.nativeTokenAddress;
+                              const nativeTokenData = nativeTokenAddress ? tokenData[nativeTokenAddress.toLowerCase()] : null;
+                              
+                              // Format native token amount with proper decimals
+                              let formattedValue;
+                              let tokenAmount = 0;
+                              
+                              if (nativeTokenData && nativeTokenData.decimals !== undefined) {
+                                try {
+                                  const decimals = nativeTokenData.decimals;
+                                  const divisor = window.ethers.BigNumber.from(10).pow(decimals);
+                                  const valueInTokens = window.ethers.BigNumber.from(value).div(divisor);
+                                  const remainder = window.ethers.BigNumber.from(value).mod(divisor);
+                                  const decimalPart = remainder.toString().padStart(decimals, '0');
+                                  formattedValue = `${valueInTokens.toString()}.${decimalPart}`.replace(/\.?0+$/, '');
+                                  tokenAmount = parseFloat(formattedValue);
+                                } catch (err) {
+                                  // Fallback to ether formatting
+                                  formattedValue = window.ethers.utils.formatEther(value);
+                                  tokenAmount = parseFloat(formattedValue);
+                                }
+                              } else {
+                                // Fallback to ether formatting
+                                formattedValue = window.ethers.utils.formatEther(value);
+                                tokenAmount = parseFloat(formattedValue);
+                              }
+                              
+                              // Calculate USD value if native token price is available
+                              const usdValue = nativeTokenData?.price ? (tokenAmount * nativeTokenData.price) : null;
+                              
+                              return (
+                                <div key={`withdrawal-${index}`} className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 shadow-sm">
+                                  <div className="flex items-center justify-between">
+                                    <div className="flex items-center space-x-3">
+                                      <i className="fas fa-coins text-yellow-600"></i>
+                                      <span className="font-mono text-sm font-semibold text-gray-800">
+                                        {formattedValue}
+                                      </span>
+                                      {usdValue && (
+                                        <span className="text-sm font-semibold text-green-600">
+                                          (${usdValue.toFixed(4)})
+                                        </span>
+                                      )}
+                                    </div>
+                                    <div className="flex items-center space-x-1">
+                                      {(() => {
+                                        const chainName = chainData?.name;
+                                        
+                                        if (chainName) {
+                                          const iconUrl = `https://icons.llamao.fi/icons/chains/rsz_${chainName.toLowerCase().replace(/\s+/g, '-')}?w=16&h=16`;
+                                          return (
+                                            <div className="flex items-center space-x-1">
+                                              <img 
+                                                src={iconUrl}
+                                                alt={chainName}
+                                                className="w-4 h-4 rounded"
+                                                onError={(e) => e.target.style.display = 'none'}
+                                              />
+                                              <span className="text-sm text-gray-600">{chainData.tokenSymbol || chainName}</span>
+                                            </div>
+                                          );
+                                        }
+                                        
+                                        return (
+                                          <span className="text-sm text-gray-600">
+                                            {chainData?.tokenSymbol || 'Native Token'}
+                                          </span>
+                                        );
+                                      })()}
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          
                           {decodedLogs
                             .filter(log => log.isDecoded && log.eventName === 'Transfer' && 
-                              window.ethers.utils.getAddress(log.args.to) === window.ethers.utils.getAddress(structuredTransactionData.from))
+                              log.args.to?.toLowerCase() === structuredTransactionData.from?.toLowerCase())
                             .map((log, index) => {
                               const value = log.args.value || '0';
                               const contractAddress = log.address || 'Unknown';
@@ -1665,34 +1525,6 @@ export default function App() {
                               const normalizedContractAddress = contractAddress.toLowerCase();
                               const token = tokenData[normalizedContractAddress];
                               const isTokenLoading = tokenLoading[normalizedContractAddress];
-                              
-                              // Format the value - use wei initially, then proper decimals when available
-                              let formattedValue;
-                              let tokenAmount = 0;
-                              
-                              if (token && token.decimals !== undefined) {
-                                // Use actual token decimals from CoinGecko
-                                try {
-                                  const decimals = token.decimals;
-                                  const divisor = window.ethers.BigNumber.from(10).pow(decimals);
-                                  const valueInTokens = window.ethers.BigNumber.from(value).div(divisor);
-                                  const remainder = window.ethers.BigNumber.from(value).mod(divisor);
-                                  const decimalPart = remainder.toString().padStart(decimals, '0');
-                                  formattedValue = `${valueInTokens.toString()}.${decimalPart}`.replace(/\.?0+$/, '');
-                                  tokenAmount = parseFloat(formattedValue);
-                                } catch (err) {
-                                  // Fallback to wei
-                                  formattedValue = `${value} wei`;
-                                  tokenAmount = 0;
-                                }
-                              } else {
-                                // Display in wei until we get token data
-                                formattedValue = `${value} wei`;
-                                tokenAmount = 0;
-                              }
-
-                              // Calculate USD value
-                              const usdValue = token?.price ? (tokenAmount * token.price) : 0;
 
                               // Get checksummed address
                               const checksummedContract = contractAddress !== 'Unknown' ? window.ethers.utils.getAddress(contractAddress) : contractAddress;
@@ -1702,58 +1534,33 @@ export default function App() {
                                   <div className="flex items-center justify-between">
                                     <div className="flex items-center space-x-3">
                                       <i className="fas fa-arrow-left text-green-500"></i>
-                                      <span className="font-mono text-sm font-semibold text-gray-800">{formattedValue}</span>
-                                      {usdValue > 0 && (
-                                        <span 
-                                          className="text-blue-600 font-semibold text-xs"
-                                          title={`$${token.price?.toFixed(6)} USD per token`}
-                                        >
-                                          (${usdValue.toFixed(2)})
-                                        </span>
-                                      )}
+                                      <TokenValueDisplay
+                                        token={token}
+                                        rawValue={value}
+                                        contractAddress={contractAddress}
+                                        isLoading={isTokenLoading}
+                                        amountClassName="font-mono text-sm font-semibold text-gray-800"
+                                        usdClassName="text-blue-600 font-semibold text-xs"
+                                      />
                                     </div>
                                     <div className="flex items-center space-x-1">
-                                      {isTokenLoading ? (
-                                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
-                                      ) : token ? (
-                                        <>
-                                          {token.image && (
-                                            <img 
-                                              src={token.image} 
-                                              alt={token.name}
-                                              className="w-4 h-4 rounded-full"
-                                              title={`${checksummedContract}${token.chainName ? ` (${token.chainName})` : ''}`}
-                                            />
-                                          )}
-                                          <span 
-                                            className="font-mono text-xs font-semibold text-blue-600"
-                                            title={`${token.name}${token.chainName ? ` on ${token.chainName}` : ''}`}
-                                          >
-                                            {token.symbol?.toUpperCase()}
-                                          </span>
-                                        </>
-                                      ) : (
-                                        <span 
-                                          className="font-mono text-xs"
-                                          title={checksummedContract}
-                                        >
-                                          {checksummedContract}
-                                        </span>
-                                      )}
-                                      <button 
-                                        onClick={() => navigator.clipboard?.writeText(checksummedContract)}
-                                        className="text-gray-400 hover:text-blue-500 transition-colors"
-                                        title="Copy contract address"
-                                      >
-                                        <i className="fa-regular fa-copy text-xs"></i>
-                                      </button>
+                                      <TokenDisplay
+                                        token={token}
+                                        contractAddress={contractAddress}
+                                        isLoading={isTokenLoading}
+                                        imageSize="w-4 h-4"
+                                        symbolClassName="font-mono text-xs font-semibold text-blue-600"
+                                        containerClassName="inline-flex items-center space-x-1"
+                                      />
                                     </div>
                                   </div>
                                 </div>
                               );
                             })}
-                          {decodedLogs.filter(log => log.isDecoded && log.eventName === 'Transfer' && 
-                            window.ethers.utils.getAddress(log.args.to) === window.ethers.utils.getAddress(structuredTransactionData.from)).length === 0 && (
+                          {(decodedLogs.filter(log => log.isDecoded && log.eventName === 'Transfer' && 
+                            log.args.to?.toLowerCase() === structuredTransactionData.from?.toLowerCase()).length === 0 &&
+                            decodedLogs.filter(log => log.isDecoded && log.eventName === 'Withdrawal' && 
+                              log.args.src?.toLowerCase() === structuredTransactionData.from?.toLowerCase()).length === 0) && (
                             <div className="flex items-center justify-center py-3 text-gray-500">
                               <i className="fas fa-info-circle mr-2"></i>
                               <span className="text-sm">No tokens received by transaction sender</span>
