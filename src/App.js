@@ -5,15 +5,17 @@ import TransferPage from './pages/Transfer';
 export default function App() {
   // Routing based on pathname
   const pathname = window.location.pathname;
-  const isTransactionPage = pathname.startsWith('/transaction');
-  const isTransferPage = pathname.startsWith('/transfer');
+  // Support subdirectory deployments (e.g. /TransactionViewer/transaction)
+  const isTransactionPage = pathname.includes('/transaction');
+  const isTransferPage = pathname.includes('/transfer');
 
   // Navigation function
   const navigateToPage = (page) => {
-    const newPath = `/${page}`;
-    window.history.pushState({}, '', newPath);
-    // Force reload to update page (SPA would use router, but this is manual)
-    window.location.replace(newPath + window.location.search);
+  const base = '/TransactionViewer';
+  const newPath = `${base}/${page}`;
+  window.history.pushState({}, '', newPath);
+  // Force reload to update page (SPA would use router, but this is manual)
+  window.location.replace(newPath + window.location.search);
   };
 
   // Get tx parameter from URL

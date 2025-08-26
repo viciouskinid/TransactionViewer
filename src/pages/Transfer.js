@@ -157,13 +157,43 @@ function estimateBlockDate(blockNumber, latestBlock, avgBlockTime) {
 
 // Transfer page component
 export default function TransferPage() {
-  // Form state
-  const [address, setAddress] = useState('0x6753560538ECa67617A9Ce605178F788bE7E524E');
-  const [rpcUrl, setRpcUrl] = useState('https://rpc-pulsechain.g4mm4.io');
-  const [timeRange, setTimeRange] = useState(24); // hours
-  
   // Loading states
   const [loading, setLoading] = useState(false);
+  const [loadingSeconds, setLoadingSeconds] = useState(0);
+
+  useEffect(() => {
+    let intervalId;
+    if (loading) {
+      setLoadingSeconds(0);
+      intervalId = setInterval(() => {
+        setLoadingSeconds(prev => prev + 1);
+      }, 1000);
+    } else {
+      setLoadingSeconds(0);
+    }
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [loading]);
+  // Read initial state from URL
+  const urlParams = new URLSearchParams(window.location.search);
+  const initialAddress = urlParams.get('address') || '0x6753560538ECa67617A9Ce605178F788bE7E524E';
+  const initialRpcUrl = urlParams.get('rpc') || 'https://rpc-pulsechain.g4mm4.io';
+  const initialTimeRange = parseInt(urlParams.get('range')) || 24;
+  // Form state
+  const [address, setAddress] = useState(initialAddress);
+  const [rpcUrl, setRpcUrl] = useState(initialRpcUrl);
+  const [timeRange, setTimeRange] = useState(initialTimeRange);
+  // Sync state to URL
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    urlParams.set('address', address);
+    urlParams.set('rpc', rpcUrl);
+    urlParams.set('range', timeRange);
+    const newUrl = `${window.location.pathname}?${urlParams.toString()}`;
+    window.history.replaceState({}, '', newUrl);
+  }, [address, rpcUrl, timeRange]);
+  
   const [blockEstimationLoading, setBlockEstimationLoading] = useState(false);
   const [error, setError] = useState(null);
   const [isEthersReady, setIsEthersReady] = useState(false);
@@ -435,15 +465,20 @@ export default function TransferPage() {
           <button
             onClick={fetchTransferLogs}
             disabled={loading || !isEthersReady || !estimatedFromBlock}
-            className="w-full py-3 px-4 rounded-lg text-white font-semibold transition-all duration-300
-                       bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-500/50
+            className="w-full py-3 px-4 rounded-lg font-semibold transition-all duration-300 flex items-center justify-center
+                       bg-blue-600 text-white hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-500/50
                        dark:bg-blue-500 dark:hover:bg-blue-600 dark:focus:ring-blue-400/50
                        disabled:bg-gray-400 disabled:cursor-not-allowed"
           >
-            {loading ? 'Fetching Transfer Logs...' : 
-             !isEthersReady ? 'Loading Libraries...' :
-             !estimatedFromBlock ? 'Estimating Block Range...' :
-             'Fetch Transfer Logs'}
+            {loading ? (
+              <>
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                Fetching transfer logs... <span className="font-mono ml-1">{loadingSeconds}s</span>
+              </>
+            ) :
+              !isEthersReady ? 'Loading Libraries...' :
+              !estimatedFromBlock ? 'Estimating Block Range...' :
+              'Fetch Transfer Logs'}
           </button>
 
           {error && (
@@ -465,6 +500,14 @@ export default function TransferPage() {
         />
 
         {/* Results */}
+        {(!loading && decodedLogs.length === 0) && (
+          <div className="w-full flex items-center justify-center mt-8">
+            <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 text-center">
+              <span className="text-lg text-gray-500 dark:text-gray-300"><i className="fas fa-info-circle mr-2"></i>No transfer logs found.</span>
+            </div>
+          </div>
+        )}
+        
         {decodedLogs.length > 0 && (
           <div className="w-full">
             {view === 'formatted' && (
@@ -485,23 +528,29 @@ export default function TransferPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {decodedLogs
-                        .filter(log => log.isDecoded && log.eventName === 'Transfer')
-                        .sort((a, b) => b.blockNumber - a.blockNumber)
-                        .map((log, index) => {
-                          const token = tokenData[log.address.toLowerCase()];
-                          const isTokenLoading = tokenLoading[log.address.toLowerCase()];
+                      {/* Group logs by transactionHash */}
+                      {(() => {
+                        const logs = decodedLogs.filter(log => log.isDecoded && log.eventName === 'Transfer').sort((a, b) => b.blockNumber - a.blockNumber);
+                        const grouped = {};
+                        logs.forEach(log => {
+                          if (!grouped[log.transactionHash]) grouped[log.transactionHash] = [];
+                          grouped[log.transactionHash].push(log);
+                        });
+                        return Object.entries(grouped).map(([txHash, txLogs], groupIdx) => {
+                          // Use first log for shared info
+                          const firstLog = txLogs[0];
+                          const token = tokenData[firstLog.address.toLowerCase()];
+                          const isTokenLoading = tokenLoading[firstLog.address.toLowerCase()];
                           const searchedAddr = address?.toLowerCase();
-                          const fromAddr = log.args.from.toLowerCase();
-                          const toAddr = log.args.to.toLowerCase();
+                          const fromAddr = firstLog.args.from.toLowerCase();
+                          const toAddr = firstLog.args.to.toLowerCase();
                           const isOutgoing = fromAddr === searchedAddr;
                           const otherAddr = isOutgoing ? toAddr : fromAddr;
                           const otherLabel = isOutgoing ? 'To:' : 'From:';
                           const methodName = 'Method'; // Placeholder
                           const sign = isOutgoing ? '-' : '+';
-                          // Age calculation
                           const avgBlockTime = latestBlock && sampleBlock ? (latestBlock.timestamp - sampleBlock.timestamp) / (latestBlock.number - sampleBlock.number) : null;
-                          const estDate = estimateBlockDate(log.blockNumber, latestBlock, avgBlockTime);
+                          const estDate = estimateBlockDate(firstLog.blockNumber, latestBlock, avgBlockTime);
                           let ageStr = '';
                           if (estDate) {
                             const now = Date.now();
@@ -523,58 +572,101 @@ export default function TransferPage() {
                               ageStr = `${diffYears} year${diffYears !== 1 ? 's' : ''} ago`;
                             }
                           }
-                          return (
-                            <tr key={index} className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                              <td className="border border-gray-300 dark:border-gray-600 px-4 py-2 font-mono text-xs">
-                                <div className="text-xs text-gray-500 mb-1" title={estDate ? estDate.toLocaleString() : ''}>{ageStr || 'N/A'}</div>
-                                <div>{log.blockNumber}</div>
-                                <div className="flex items-center space-x-2">
-                                  <a 
-                                    href={`?tx=${log.transactionHash}`}
-                                    className="text-blue-500 hover:text-blue-700 underline"
-                                    title={log.transactionHash}
-                                  >
-                                    {`${log.transactionHash.slice(0, 8)}...`}
-                                  </a>
-                                  <CopyAddressButton address={log.transactionHash} className="ml-1 text-gray-400 hover:text-green-500 transition-colors" iconClass="fa-regular fa-copy text-xs" />
-                                </div>
-                              </td>
-                              <td className="border border-gray-300 dark:border-gray-600 px-4 py-2 font-mono text-xs">
-                                <div className="font-bold mb-1">{methodName}</div>
-                                <div className="flex items-center space-x-2 mt-1">
-                                  <span>{otherLabel} {`${otherAddr.slice(0, 6)}...${otherAddr.slice(-4)}`}</span>
-                                  <CopyAddressButton address={otherAddr} className="ml-1 text-gray-400 hover:text-green-500 transition-colors" iconClass="fa-regular fa-copy text-xs" />
-                                </div>
-                              </td>
-                              <td className="border border-gray-300 dark:border-gray-600 px-4 py-2">
-                                <div className={isOutgoing ? 'text-red-600' : 'text-green-600'}>
-                                  {sign}
-                                  <TokenValueDisplay
-                                    token={token}
-                                    rawValue={log.args.value}
-                                    contractAddress={log.address}
-                                    isLoading={isTokenLoading}
-                                    amountClassName="font-mono text-sm"
-                                    usdClassName="text-green-600 text-xs"
-                                    showUsdValue={true}
-                                  />
-                                </div>
-                                <div>
-                                  <TokenDisplay
-                                    token={token}
-                                    contractAddress={log.address}
-                                    isLoading={isTokenLoading}
-                                    imageSize="w-5 h-5"
-                                    symbolClassName="font-mono text-xs font-semibold"
-                                    containerClassName="inline-flex items-center space-x-2"
-                                    showFallback={true}
-                                  />
-                                </div>
-                              </td>
-                              <td className="border border-gray-300 dark:border-gray-600 px-4 py-2 text-xs text-gray-400">Tx Fee</td>
-                            </tr>
-                          );
-                        })}
+                          // Filter out zero value logs
+                          const nonZeroLogs = txLogs.filter(l => {
+                            try {
+                              return l.args.value && !/^0x?0*$/i.test(l.args.value) && (parseInt(l.args.value, 16) !== 0);
+                            } catch {
+                              return false;
+                            }
+                          });
+                          if (nonZeroLogs.length === 0) return null;
+                          // Group by token and direction, sum values
+                          const tokenGroups = {};
+                          nonZeroLogs.forEach(log => {
+                            const tokenAddr = log.address.toLowerCase();
+                            const fromAddr = log.args.from.toLowerCase();
+                            const toAddr = log.args.to.toLowerCase();
+                            const isOutgoing = fromAddr === searchedAddr;
+                            const key = tokenAddr + (isOutgoing ? '_out' : '_in');
+                            if (!tokenGroups[key]) {
+                              tokenGroups[key] = {
+                                tokenAddr,
+                                isOutgoing,
+                                logs: [],
+                                total: window.ethers ? window.ethers.BigNumber.from(0) : 0
+                              };
+                            }
+                            tokenGroups[key].logs.push(log);
+                            // Sum value as BigNumber
+                            try {
+                              if (window.ethers) {
+                                tokenGroups[key].total = tokenGroups[key].total.add(window.ethers.BigNumber.from(log.args.value));
+                              }
+                            } catch {}
+                          });
+                          const tokenGroupArr = Object.values(tokenGroups);
+                          return tokenGroupArr.map((group, idx) => {
+                            const log = group.logs[0];
+                            const token = tokenData[group.tokenAddr];
+                            const isTokenLoading = tokenLoading[group.tokenAddr];
+                            const sign = group.isOutgoing ? '-' : '+';
+                            // Only show Age/Block/Tx Hash, Method/From/To, Tx Fee in first row
+                            return (
+                              <tr key={group.tokenAddr + sign} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                                {idx === 0 && (
+                                  <td className="border border-gray-300 dark:border-gray-600 px-4 py-2 font-mono text-xs" rowSpan={tokenGroupArr.length}>
+                                    <div className="text-xs text-gray-500 mb-1" title={estDate ? estDate.toLocaleString() : ''}>{ageStr || 'N/A'}</div>
+                                    <div>{log.blockNumber}</div>
+                                    <div className="flex items-center space-x-2">
+                                      <a 
+                                        href={`?tx=${log.transactionHash}`}
+                                        className="text-blue-500 hover:text-blue-700 underline"
+                                        title={log.transactionHash}
+                                      >
+                                        {`${log.transactionHash.slice(0, 8)}...`}
+                                      </a>
+                                      <CopyAddressButton address={log.transactionHash} className="ml-1 text-gray-400 hover:text-green-500 transition-colors" iconClass="fa-regular fa-copy text-xs" />
+                                    </div>
+                                  </td>
+                                )}
+                                {idx === 0 && (
+                                  <td className="border border-gray-300 dark:border-gray-600 px-4 py-2 font-mono text-xs" rowSpan={tokenGroupArr.length}>
+                                    <div className="font-bold mb-1">{methodName}</div>
+                                    <div className="flex items-center space-x-2 mt-1">
+                                      <span>{otherLabel} {`${otherAddr.slice(0, 6)}...${otherAddr.slice(-4)}`}</span>
+                                      <CopyAddressButton address={otherAddr} className="ml-1 text-gray-400 hover:text-green-500 transition-colors" iconClass="fa-regular fa-copy text-xs" />
+                                    </div>
+                                  </td>
+                                )}
+                                <td className="border border-gray-300 dark:border-gray-600 px-4 py-2">
+                                  <div className="flex items-center gap-1" style={{fontSize: '0.85em'}}>
+                                    <span className={group.isOutgoing ? 'text-red-600' : 'text-green-600'}>{sign}</span>
+                                    <span className={group.isOutgoing ? 'text-red-600' : 'text-green-600'}>
+                                      {/* Show summed value in ether */}
+                                      <span className="font-mono text-xs">
+                                        {window.ethers ? window.ethers.utils.formatUnits(group.total, token?.decimals || 18) : group.total.toString()}
+                                      </span>
+                                    </span>
+                                    <TokenDisplay
+                                      token={token}
+                                      contractAddress={group.tokenAddr}
+                                      isLoading={isTokenLoading}
+                                      imageSize="w-4 h-4"
+                                      symbolClassName="font-mono text-xs font-semibold"
+                                      containerClassName="inline-flex items-center gap-1"
+                                      showFallback={true}
+                                    />
+                                  </div>
+                                </td>
+                                {idx === 0 && (
+                                  <td className="border border-gray-300 dark:border-gray-600 px-4 py-2 text-xs text-gray-400" rowSpan={tokenGroupArr.length}>Tx Fee</td>
+                                )}
+                              </tr>
+                            );
+                          });
+                        });
+                      })()}
                     </tbody>
                   </table>
                 </div>
