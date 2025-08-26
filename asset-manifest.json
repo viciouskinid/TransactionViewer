@@ -1,13 +1,13 @@
 {
   "files": {
-    "main.css": "/TransactionViewer/static/css/main.2f321104.css",
-    "main.js": "/TransactionViewer/static/js/main.54b59a08.js",
+    "main.css": "/TransactionViewer/static/css/main.82942a86.css",
+    "main.js": "/TransactionViewer/static/js/main.a0da467b.js",
     "index.html": "/TransactionViewer/index.html",
-    "main.2f321104.css.map": "/TransactionViewer/static/css/main.2f321104.css.map",
-    "main.54b59a08.js.map": "/TransactionViewer/static/js/main.54b59a08.js.map"
+    "main.82942a86.css.map": "/TransactionViewer/static/css/main.82942a86.css.map",
+    "main.a0da467b.js.map": "/TransactionViewer/static/js/main.a0da467b.js.map"
   },
   "entrypoints": [
-    "static/css/main.2f321104.css",
-    "static/js/main.54b59a08.js"
+    "static/css/main.82942a86.css",
+    "static/js/main.a0da467b.js"
   ]
 }
