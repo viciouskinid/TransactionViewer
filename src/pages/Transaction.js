@@ -708,179 +708,134 @@ export default function TransactionPage({ txHash: txHashProp }) {
             </div>
             )}
 
-            {/* Gas Section */}
-            {transactionData && structuredTransactionData && transactionReceipt && structuredTransactionReceipt && (
-              <div className="w-full max-w-2xl bg-yellow-50 border border-yellow-200 rounded-xl shadow-lg p-6"
-                   style={{ backgroundColor: '#FEF3E2' }}>
-                <h2 className="text-2xl font-bold mb-6 text-yellow-700 flex items-center">
-                  <i className="fas fa-gas-pump mr-2"></i>
-                  Gas Information
-                </h2>
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Transaction Gas Data (Left) */}
-                <div>
-                  <h3 className="text-lg font-semibold text-yellow-600 mb-4 flex items-center">
-                    <i className="fas fa-arrow-up mr-2"></i>
-                    Message Data
-                  </h3>
-                  <div className="space-y-3">
-                    {structuredTransactionData.gas && (
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 border-b border-yellow-200 pb-4">
-                        <div className="flex items-center space-x-2">
-                          <i className="fas fa-tachometer-alt text-yellow-500"></i>
-                          <span className="text-sm font-semibold text-yellow-600">Gas Limit:</span>
-                        </div>
-                        <div className="md:col-span-2">
-                          <span className="break-words font-mono text-sm text-gray-700">
-                            {parseInt(structuredTransactionData.gas, 16).toLocaleString()}
-                          </span>
-                        </div>
-                      </div>
-                    )}
-                    {structuredTransactionData.maxPriorityFeePerGas && (
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 border-b border-yellow-200 pb-4">
-                        <div className="flex items-center space-x-2">
-                          <i className="fas fa-star text-yellow-500"></i>
-                          <span className="text-sm font-semibold text-yellow-600">Max Priority Fee:</span>
-                        </div>
-                        <div className="md:col-span-2">
-                          <span className="break-words font-mono text-sm text-gray-700">
-                            {(parseInt(structuredTransactionData.maxPriorityFeePerGas, 16) / 1e9).toFixed(2)} Gwei
-                          </span>
-                        </div>
-                      </div>
-                    )}
-                    {structuredTransactionData.maxFeePerGas && (
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 border-b border-yellow-200 pb-4">
-                        <div className="flex items-center space-x-2">
-                          <i className="fas fa-fire text-yellow-500"></i>
-                          <span className="text-sm font-semibold text-yellow-600">Max Fee Per Gas:</span>
-                        </div>
-                        <div className="md:col-span-2">
-                          <span className="break-words font-mono text-sm text-gray-700">
-                            {(parseInt(structuredTransactionData.maxFeePerGas, 16) / 1e9).toFixed(2)} Gwei
-                          </span>
-                        </div>
-                      </div>
-                    )}
-                    {structuredTransactionData.maxPriorityFeePerGas && structuredTransactionData.maxFeePerGas && (
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pb-4">
-                        <div className="flex items-center space-x-2">
-                          <i className="fas fa-calculator text-yellow-500"></i>
-                          <span className="text-sm font-semibold text-yellow-600">Max Base Fee:</span>
-                        </div>
-                        <div className="md:col-span-2">
-                          <span className="break-words font-mono text-sm text-gray-700">
-                            {((parseInt(structuredTransactionData.maxFeePerGas, 16) - parseInt(structuredTransactionData.maxPriorityFeePerGas, 16)) / 1e9).toFixed(2)} Gwei
-                            {blockData?.baseFeePerGas && (() => {
-                              const maxBaseFee = parseInt(structuredTransactionData.maxFeePerGas, 16) - parseInt(structuredTransactionData.maxPriorityFeePerGas, 16);
-                              const baseFeePerGas = parseInt(blockData.baseFeePerGas, 16);
-                              const percentage = ((maxBaseFee / baseFeePerGas) * 100);
-                              if (percentage > 0) {
-                                return (
-                                  <span className="text-xs text-gray-500 ml-2">
-                                    ({percentage.toFixed(1)}% of base fee)
-                                  </span>
-                                );
-                              }
-                              return null;
-                            })()}
-                          </span>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
+            {/* Gas Information */}
+            {transactionData && structuredTransactionData && transactionReceipt && structuredTransactionReceipt && (() => {
+              // Calculate gas values
+              const gasUsed = structuredTransactionReceipt.gasUsed ? parseInt(structuredTransactionReceipt.gasUsed, 16) : null;
+              const gasLimit = structuredTransactionData.gas ? parseInt(structuredTransactionData.gas, 16) : null;
+              const effectiveGasPrice = structuredTransactionReceipt.effectiveGasPrice ? parseInt(structuredTransactionReceipt.effectiveGasPrice, 16) : null;
+              const maxFeePerGas = structuredTransactionData.maxFeePerGas ? parseInt(structuredTransactionData.maxFeePerGas, 16) : null;
+              const maxPriorityFeePerGas = structuredTransactionData.maxPriorityFeePerGas ? parseInt(structuredTransactionData.maxPriorityFeePerGas, 16) : null;
+              const baseFeePerGas = blockData?.baseFeePerGas ? parseInt(blockData.baseFeePerGas, 16) : null;
+              
+              // Calculate transaction fee
+              const transactionFee = gasUsed && effectiveGasPrice ? (gasUsed * effectiveGasPrice) / 1e18 : null;
+              
+              // Get chain data for USD conversion
+              const chainId = structuredTransactionData?.chainId;
+              const chainData = chainId ? chainsData[chainId] : null;
+              const nativeTokenAddress = chainData?.nativeTokenAddress;
+              const nativeTokenData = nativeTokenAddress ? tokenData[nativeTokenAddress.toLowerCase()] : null;
+              const feeInUSD = transactionFee && nativeTokenData?.price ? (transactionFee * nativeTokenData.price) : null;
+              
+              // Calculate max base fee
+              const maxBaseFee = maxFeePerGas && maxPriorityFeePerGas ? maxFeePerGas - maxPriorityFeePerGas : null;
+              
+              // Calculate effective priority fee (what was actually paid)
+              const effectivePriorityFee = effectiveGasPrice && baseFeePerGas ? effectiveGasPrice - baseFeePerGas : null;
+              
+              // Calculate final transaction fee in Gwei
+              const finalTransactionFeeGwei = gasUsed && effectiveGasPrice ? (gasUsed * effectiveGasPrice) / 1e9 : null;
 
-                {/* Receipt Gas Data (Right) */}
-                <div>
-                  <h3 className="text-lg font-semibold text-yellow-600 mb-4 flex items-center">
-                    <i className="fas fa-receipt mr-2"></i>
-                    Receipt Data
-                  </h3>
-                  <div className="space-y-3">
-                    {/* Gas Used with Gas Efficiency - moved to top */}
-                    {structuredTransactionReceipt.gasUsed && transactionData.gas && transactionReceipt.gasUsed && (
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 border-b border-yellow-200 pb-4">
-                        <div className="flex items-center space-x-2">
-                          <i className="fas fa-burn text-yellow-500"></i>
-                          <span className="text-sm font-semibold text-yellow-600">Gas Used:</span>
+              return (
+                <div className="w-full max-w-2xl bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700">
+                  <h2 className="text-2xl font-bold mb-6 text-gray-800 dark:text-gray-200 flex items-center">
+                    <i className="fas fa-gas-pump mr-2 text-yellow-500"></i>
+                    Gas Information
+                  </h2>
+                  
+                  <div className="space-y-4">
+                    {/* Row 1: Max Base Fee Per Gas */}
+                    {maxBaseFee && baseFeePerGas && maxFeePerGas && maxPriorityFeePerGas && (
+                      <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start border-b border-gray-200 dark:border-gray-700 pb-4">
+                        <div className="lg:w-1/3 mb-2 lg:mb-0">
+                          <span className="text-sm font-semibold text-gray-600 dark:text-gray-400">Max Base Fee Per Gas</span>
+                          <div className="text-lg font-bold text-gray-800 dark:text-gray-200 mt-1">
+                            {(maxBaseFee / 1e9).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Gwei
+                          </div>
+                          <div className="text-sm text-gray-600 dark:text-gray-400">
+                            ({baseFeePerGas ? ((maxBaseFee / baseFeePerGas) * 100).toFixed(0) : '0'}% of Base Fee)
+                          </div>
                         </div>
-                        <div className="md:col-span-2">
-                          <span className="break-words font-mono text-sm text-gray-700">
-                            {parseInt(structuredTransactionReceipt.gasUsed, 16).toLocaleString()} ({((parseInt(transactionReceipt.gasUsed, 16) / parseInt(transactionData.gas, 16)) * 100).toFixed(1)}%)
-                          </span>
-                        </div>
-                      </div>
-                    )}
-                    {/* Effective Gas Price */}
-                    {structuredTransactionReceipt.effectiveGasPrice && (
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 border-b border-yellow-200 pb-4">
-                        <div className="flex items-center space-x-2">
-                          <i className="fas fa-calculator text-yellow-500"></i>
-                          <span className="text-sm font-semibold text-yellow-600">Effective Gas Price:</span>
-                        </div>
-                        <div className="md:col-span-2">
-                          <span className="break-words font-mono text-sm text-gray-700">
-                            {(parseInt(structuredTransactionReceipt.effectiveGasPrice, 16) / 1e9).toFixed(2)} Gwei
-                          </span>
+                        <div className="lg:w-2/3">
+                          <div className="text-sm text-gray-700 dark:text-gray-300">
+                            Max Fee Per Gas: {(maxFeePerGas / 1e9).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Gwei
+                          </div>
+                          <div className="text-sm text-gray-700 dark:text-gray-300">
+                            Max Priority Fee Per Gas (User Set): {(maxPriorityFeePerGas / 1e9).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Gwei
+                          </div>
                         </div>
                       </div>
                     )}
-                    {/* Transaction Fee from receipt calculation */}
-                    {transactionReceipt.gasUsed && transactionReceipt.effectiveGasPrice && (
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pb-4">
-                        <div className="flex items-center space-x-2">
-                          <i className="fas fa-money-bill text-yellow-500"></i>
-                          <span className="text-sm font-semibold text-yellow-600">Transaction Fee:</span>
+
+                    {/* Row 2: Effective Gas Price */}
+                    {effectiveGasPrice && baseFeePerGas && effectivePriorityFee && (
+                      <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start border-b border-gray-200 dark:border-gray-700 pb-4">
+                        <div className="lg:w-1/3 mb-2 lg:mb-0">
+                          <span className="text-sm font-semibold text-gray-600 dark:text-gray-400">Effective Gas Price</span>
+                          <div className="text-lg font-bold text-gray-800 dark:text-gray-200 mt-1">
+                            {(effectiveGasPrice / 1e9).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Gwei
+                          </div>
                         </div>
-                        <div className="md:col-span-2 flex items-center space-x-2">
-                          <span className="break-words font-mono text-sm text-gray-700">
-                            {((parseInt(transactionReceipt.gasUsed, 16) * parseInt(transactionReceipt.effectiveGasPrice, 16)) / 1e18).toFixed(6)}
-                          </span>
-                          {(() => {
-                            // Get chain data from YAML based on chainId
-                            const chainId = structuredTransactionData?.chainId;
-                            const chainData = chainId ? chainsData[chainId] : null;
-                            const chainName = chainData?.name;
-                            const nativeTokenAddress = chainData?.nativeTokenAddress;
-                            const nativeTokenData = nativeTokenAddress ? tokenData[nativeTokenAddress.toLowerCase()] : null;
-                            
-                            // Calculate USD value if native token price is available
-                            const feeInNative = ((parseInt(transactionReceipt.gasUsed, 16) * parseInt(transactionReceipt.effectiveGasPrice, 16)) / 1e18);
-                            const feeInUSD = nativeTokenData?.price ? (feeInNative * nativeTokenData.price) : null;
-                            
-                            if (chainName) {
-                              const iconUrl = `https://icons.llamao.fi/icons/chains/rsz_${chainName.toLowerCase().replace(/\s+/g, '-')}?w=16&h=16`;
-                              return (
-                                <div className="flex items-center space-x-1">
-                                  {feeInUSD && (
-                                    <span className="text-sm font-semibold text-green-600">
-                                      (${feeInUSD.toFixed(4)})
-                                    </span>
-                                  )}
-                                  <span className="text-sm text-gray-600">{chainData.tokenSymbol || chainName}</span>
-                                  <img 
-                                    src={iconUrl}
-                                    alt={chainName}
-                                    className="w-4 h-4 rounded-full"
-                                    onError={(e) => {
-                                      e.target.style.display = 'none';
-                                    }}
-                                  />
-                                </div>
-                              );
-                            }
-                            return null;
-                          })()}
+                        <div className="lg:w-2/3">
+                          <div className="text-sm text-gray-700 dark:text-gray-300">
+                            Base Fee Per Gas: {(baseFeePerGas / 1e9).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Gwei
+                          </div>
+                          <div className="text-sm text-gray-700 dark:text-gray-300">
+                            Max Priority Fee Per Gas (Effective): {(effectivePriorityFee / 1e9).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Gwei
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Row 3: Gas Used */}
+                    {gasUsed && gasLimit && (
+                      <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start border-b border-gray-200 dark:border-gray-700 pb-4">
+                        <div className="lg:w-1/3 mb-2 lg:mb-0">
+                          <span className="text-sm font-semibold text-gray-600 dark:text-gray-400">Gas Used</span>
+                          <div className="text-lg font-bold text-gray-800 dark:text-gray-200 mt-1">
+                            {gasUsed.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} units
+                          </div>
+                        </div>
+                        <div className="lg:w-2/3">
+                          <div className="text-sm text-gray-700 dark:text-gray-300">
+                            Gas Limit: {gasLimit.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} units
+                          </div>
+                          <div className="text-sm text-gray-700 dark:text-gray-300">
+                            Gas Utilisation: {((gasUsed / gasLimit) * 100).toFixed(2)} %
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Row 4: Transaction Fee */}
+                    {finalTransactionFeeGwei && effectiveGasPrice && gasUsed && (
+                      <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start">
+                        <div className="lg:w-1/3 mb-2 lg:mb-0">
+                          <span className="text-sm font-semibold text-gray-600 dark:text-gray-400">Transaction Fee</span>
+                          <div className="text-lg font-bold text-gray-800 dark:text-gray-200 mt-1">
+                            {finalTransactionFeeGwei.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Gwei
+                          </div>
+                          {feeInUSD && (
+                            <div className="text-sm text-green-600 dark:text-green-400">
+                              ≈ ${feeInUSD.toFixed(4)} USD
+                            </div>
+                          )}
+                        </div>
+                        <div className="lg:w-2/3">
+                          <div className="text-sm text-gray-700 dark:text-gray-300">
+                            Effective Gas Price: {(effectiveGasPrice / 1e9).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Gwei
+                          </div>
+                          <div className="text-sm text-gray-700 dark:text-gray-300">
+                            Gas Used: {gasUsed.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} units
+                          </div>
                         </div>
                       </div>
                     )}
                   </div>
                 </div>
-              </div>
-            </div>
-            )}
+              );
+            })()}
 
             {/* --- Message Section --- */}
             {structuredTransactionData && (
