@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import TransactionPage from './pages/Transaction';
 import TransferPage from './pages/Transfer';
+import AddressTagsPage from './pages/AddressTags';
 
 export default function App() {
   // Routing based on pathname
@@ -8,6 +9,10 @@ export default function App() {
   // Support subdirectory deployments (e.g. /TransactionViewer/transaction)
   const isTransactionPage = pathname.includes('/transaction');
   const isTransferPage = pathname.includes('/transfer');
+  const isAddressTagsPage = pathname.includes('/address-tags');
+  
+  // Default to transaction page if no specific page is detected
+  const isRootPage = !isTransactionPage && !isTransferPage && !isAddressTagsPage;
 
   // Navigation function
   const navigateToPage = (page) => {
@@ -39,7 +44,7 @@ export default function App() {
               <button
                 onClick={() => navigateToPage('transaction')}
                 className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
-                  isTransactionPage
+                  isTransactionPage || isRootPage
                     ? 'bg-blue-500 text-white shadow-md'
                     : 'text-gray-600 hover:bg-gray-100'
                 }`}
@@ -59,6 +64,18 @@ export default function App() {
                 <i className="fas fa-exchange-alt mr-2"></i>
                 Transfer
               </button>
+              
+              <button
+                onClick={() => navigateToPage('address-tags')}
+                className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
+                  isAddressTagsPage
+                    ? 'bg-blue-500 text-white shadow-md'
+                    : 'text-gray-600 hover:bg-gray-100'
+                }`}
+              >
+                <i className="fas fa-tags mr-2"></i>
+                Address Tags
+              </button>
             </div>
           </div>
         </div>
@@ -66,8 +83,9 @@ export default function App() {
 
       {/* Page Content */}
       <main>
-        {isTransactionPage && <TransactionPage txHash={txParam} />}
+        {(isTransactionPage || isRootPage) && <TransactionPage txHash={txParam} />}
         {isTransferPage && <TransferPage />}
+        {isAddressTagsPage && <AddressTagsPage />}
       </main>
     </div>
   );
