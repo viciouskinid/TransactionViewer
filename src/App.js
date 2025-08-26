@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import TransactionPage from './pages/Transaction';
 import TransferPage from './pages/Transfer';
 import AddressTagsPage from './pages/AddressTags';
+import ContractReaderPage from './pages/ContractReader';
+import TokenBalancePage from './pages/TokenBalance';
 
 export default function App() {
   // Routing based on pathname and hash
@@ -12,9 +14,11 @@ export default function App() {
   const isTransactionPage = pathname.includes('/transaction') || hash.includes('/transaction');
   const isTransferPage = pathname.includes('/transfer') || hash.includes('/transfer');
   const isAddressTagsPage = pathname.includes('/address-tags') || hash.includes('/address-tags');
+  const isContractReaderPage = pathname.includes('/contract-reader') || hash.includes('/contract-reader');
+  const isTokenBalancePage = pathname.includes('/token-balance') || hash.includes('/token-balance');
   
   // Default to transaction page if no specific page is detected
-  const isRootPage = !isTransactionPage && !isTransferPage && !isAddressTagsPage;
+  const isRootPage = !isTransactionPage && !isTransferPage && !isAddressTagsPage && !isContractReaderPage && !isTokenBalancePage;
 
   // Navigation function
   const navigateToPage = (page) => {
@@ -78,6 +82,30 @@ export default function App() {
                 <i className="fas fa-tags mr-2"></i>
                 Address Tags
               </button>
+              
+              <button
+                onClick={() => navigateToPage('contract-reader')}
+                className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
+                  isContractReaderPage
+                    ? 'bg-blue-500 text-white shadow-md'
+                    : 'text-gray-600 hover:bg-gray-100'
+                }`}
+              >
+                <i className="fas fa-code mr-2"></i>
+                Contract Reader
+              </button>
+              
+              <button
+                onClick={() => navigateToPage('token-balance')}
+                className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
+                  isTokenBalancePage
+                    ? 'bg-blue-500 text-white shadow-md'
+                    : 'text-gray-600 hover:bg-gray-100'
+                }`}
+              >
+                <i className="fas fa-coins mr-2"></i>
+                Token Balance
+              </button>
             </div>
           </div>
         </div>
@@ -118,6 +146,20 @@ export default function App() {
                     <i className="fas fa-tags mr-2"></i>
                     Address Tags
                   </button>
+                  <button
+                    onClick={() => navigateToPage('contract-reader')}
+                    className="px-6 py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors duration-200 flex items-center"
+                  >
+                    <i className="fas fa-code mr-2"></i>
+                    Contract Reader
+                  </button>
+                  <button
+                    onClick={() => navigateToPage('token-balance')}
+                    className="px-6 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors duration-200 flex items-center"
+                  >
+                    <i className="fas fa-coins mr-2"></i>
+                    Token Balance
+                  </button>
                 </div>
               </div>
             </div>
@@ -126,6 +168,8 @@ export default function App() {
         {isTransactionPage && <TransactionPage txHash={txParam} />}
         {isTransferPage && <TransferPage />}
         {isAddressTagsPage && <AddressTagsPage />}
+        {isContractReaderPage && <ContractReaderPage />}
+        {isTokenBalancePage && <TokenBalancePage />}
       </main>
     </div>
   );

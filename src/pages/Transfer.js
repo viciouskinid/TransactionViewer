@@ -193,6 +193,13 @@ export default function TransferPage() {
     const newUrl = `${window.location.pathname}?${urlParams.toString()}`;
     window.history.replaceState({}, '', newUrl);
   }, [address, rpcUrl, timeRange]);
+
+  // Reset fetch status when parameters change
+  useEffect(() => {
+    setHasFetchedLogs(false);
+    setDecodedLogs([]);
+    setTransferLogs([]);
+  }, [address, rpcUrl, timeRange]);
   
   const [blockEstimationLoading, setBlockEstimationLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -206,6 +213,7 @@ export default function TransferPage() {
   // Transfer data
   const [transferLogs, setTransferLogs] = useState([]);
   const [decodedLogs, setDecodedLogs] = useState([]);
+  const [hasFetchedLogs, setHasFetchedLogs] = useState(false);
   
   // View state
   const [view, setView] = useState('formatted'); // 'raw', 'structured', 'formatted'
@@ -341,6 +349,7 @@ export default function TransferPage() {
     setError(null);
     setTransferLogs([]);
     setDecodedLogs([]);
+    setHasFetchedLogs(true); // Mark that a fetch attempt has been made
 
     try {
       // Normalize address
@@ -500,7 +509,7 @@ export default function TransferPage() {
         />
 
         {/* Results */}
-        {(!loading && decodedLogs.length === 0) && (
+        {(!loading && hasFetchedLogs && decodedLogs.length === 0) && (
           <div className="w-full flex items-center justify-center mt-8">
             <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 text-center">
               <span className="text-lg text-gray-500 dark:text-gray-300"><i className="fas fa-info-circle mr-2"></i>No transfer logs found.</span>
