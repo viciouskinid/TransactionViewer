@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import TransactionPage from './pages/Transaction';
 import TransferPage from './pages/Transfer';
 import AddressTagsPage from './pages/AddressTags';
 import ContractReaderPage from './pages/ContractReader';
 import TokenBalancePage from './pages/TokenBalance';
+import BlockAnalyticsPage from './pages/BlockAnalytics';
 
 export default function App() {
   // Routing based on pathname and hash
@@ -16,9 +17,10 @@ export default function App() {
   const isAddressTagsPage = pathname.includes('/address-tags') || hash.includes('/address-tags');
   const isContractReaderPage = pathname.includes('/contract-reader') || hash.includes('/contract-reader');
   const isTokenBalancePage = pathname.includes('/token-balance') || hash.includes('/token-balance');
+  const isBlockAnalyticsPage = pathname.includes('/block-analytics') || hash.includes('/block-analytics');
   
   // Default to transaction page if no specific page is detected
-  const isRootPage = !isTransactionPage && !isTransferPage && !isAddressTagsPage && !isContractReaderPage && !isTokenBalancePage;
+  const isRootPage = !isTransactionPage && !isTransferPage && !isAddressTagsPage && !isContractReaderPage && !isTokenBalancePage && !isBlockAnalyticsPage;
 
   // Navigation function
   const navigateToPage = (page) => {
@@ -106,6 +108,18 @@ export default function App() {
                 <i className="fas fa-coins mr-2"></i>
                 Token Balance
               </button>
+              
+              <button
+                onClick={() => navigateToPage('block-analytics')}
+                className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
+                  isBlockAnalyticsPage
+                    ? 'bg-blue-500 text-white shadow-md'
+                    : 'text-gray-600 hover:bg-gray-100'
+                }`}
+              >
+                <i className="fas fa-chart-line mr-2"></i>
+                Block Analytics
+              </button>
             </div>
           </div>
         </div>
@@ -160,6 +174,13 @@ export default function App() {
                     <i className="fas fa-coins mr-2"></i>
                     Token Balance
                   </button>
+                  <button
+                    onClick={() => navigateToPage('block-analytics')}
+                    className="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors duration-200 flex items-center"
+                  >
+                    <i className="fas fa-chart-line mr-2"></i>
+                    Block Analytics
+                  </button>
                 </div>
               </div>
             </div>
@@ -170,6 +191,7 @@ export default function App() {
         {isAddressTagsPage && <AddressTagsPage />}
         {isContractReaderPage && <ContractReaderPage />}
         {isTokenBalancePage && <TokenBalancePage />}
+        {isBlockAnalyticsPage && <BlockAnalyticsPage />}
       </main>
     </div>
   );
