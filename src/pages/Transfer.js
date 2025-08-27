@@ -175,10 +175,23 @@ export default function TransferPage() {
       if (intervalId) clearInterval(intervalId);
     };
   }, [loading]);
-  // Read initial state from URL
-  const urlParams = new URLSearchParams(window.location.search);
+  // Read initial state from URL (support both search params and hash routing)
+  const getUrlParams = () => {
+    // First try regular search parameters
+    let urlParams = new URLSearchParams(window.location.search);
+    
+    // If no parameters in search, try hash routing parameters
+    if (!urlParams.toString() && window.location.hash.includes('?')) {
+      const hashQuery = window.location.hash.split('?')[1];
+      urlParams = new URLSearchParams(hashQuery);
+    }
+    
+    return urlParams;
+  };
+  
+  const urlParams = getUrlParams();
   const initialAddress = urlParams.get('address') || '0x6753560538ECa67617A9Ce605178F788bE7E524E';
-  const initialRpcUrl = urlParams.get('rpc') || 'https://rpc-pulsechain.g4mm4.io';
+  const initialRpcUrl = urlParams.get('rpc') ? decodeURIComponent(urlParams.get('rpc')) : 'https://rpc-pulsechain.g4mm4.io';
   const initialTimeRange = parseInt(urlParams.get('range')) || 24;
   // Form state
   const [address, setAddress] = useState(initialAddress);
@@ -629,9 +642,11 @@ export default function TransferPage() {
                                     <div>{log.blockNumber}</div>
                                     <div className="flex items-center space-x-2">
                                       <a 
-                                        href={`?tx=${log.transactionHash}`}
+                                        href={`/TransactionViewer/#/transaction?tx=${log.transactionHash}&rpc=${encodeURIComponent(rpcUrl)}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
                                         className="text-blue-500 hover:text-blue-700 underline"
-                                        title={log.transactionHash}
+                                        title={`View transaction: ${log.transactionHash}`}
                                       >
                                         {`${log.transactionHash.slice(0, 8)}...`}
                                       </a>

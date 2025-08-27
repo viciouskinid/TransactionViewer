@@ -99,9 +99,27 @@ const decodeLogsWithABI = (logs, abis) => {
 
 // Transaction page component
 export default function TransactionPage({ txHash: txHashProp }) {
+  // Read initial state from URL parameters (support both search params and hash routing)
+  const getUrlParams = () => {
+    // First try regular search parameters
+    let urlParams = new URLSearchParams(window.location.search);
+    
+    // If no parameters in search, try hash routing parameters
+    if (!urlParams.toString() && window.location.hash.includes('?')) {
+      const hashQuery = window.location.hash.split('?')[1];
+      urlParams = new URLSearchParams(hashQuery);
+    }
+    
+    return urlParams;
+  };
+  
+  const urlParams = getUrlParams();
+  const initialTxHash = urlParams.get('tx') || txHashProp || '0x9c54a7938b98c4db6e6d8d4bc6aea98a62f032cdd3e88b97b5f96c4dd52442de';
+  const initialRpcUrl = urlParams.get('rpc') ? decodeURIComponent(urlParams.get('rpc')) : 'https://rpc-pulsechain.g4mm4.io';
+  
   // State variables for the transaction hash, RPC URL, and transaction data
-  const [txHash, setTxHash] = useState(txHashProp || '0x9c54a7938b98c4db6e6d8d4bc6aea98a62f032cdd3e88b97b5f96c4dd52442de');
-  const [rpcUrl, setRpcUrl] = useState('https://rpc-pulsechain.g4mm4.io');
+  const [txHash, setTxHash] = useState(initialTxHash);
+  const [rpcUrl, setRpcUrl] = useState(initialRpcUrl);
   const [transactionData, setTransactionData] = useState(null);
   const [structuredTransactionData, setStructuredTransactionData] = useState(null);
   const [transactionReceipt, setTransactionReceipt] = useState(null);
@@ -935,19 +953,30 @@ export default function TransactionPage({ txHash: txHashProp }) {
                               </span>
                             );
                           }
-                        })() : (
+                        })() : (key === 'from' || key === 'to') ? (
+                          // For from/to addresses, show only the hyperlink
+                          <div className="flex items-center space-x-2">
+                            <a
+                              href={`/TransactionViewer/#/transfer?address=${value}&rpc=${encodeURIComponent(rpcUrl)}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-600 hover:text-blue-800 underline break-words font-mono text-sm"
+                              title={`View transfers for ${value}`}
+                            >
+                              {typeof value === 'object' ? JSON.stringify(value) : value}
+                            </a>
+                            <button 
+                              onClick={() => navigator.clipboard?.writeText(value)}
+                              className="text-gray-400 hover:text-blue-500 transition-colors"
+                              title="Copy address"
+                            >
+                              <i className="fa-regular fa-copy"></i>
+                            </button>
+                          </div>
+                        ) : (
                           <span className="break-words font-mono text-sm text-gray-700 dark:text-gray-200">
                             {typeof value === 'object' ? JSON.stringify(value) : value}
                           </span>
-                        )}
-                        {(key === 'from' || key === 'to') && (
-                          <button 
-                            onClick={() => navigator.clipboard?.writeText(value)}
-                            className="text-gray-400 hover:text-blue-500 ml-2 transition-colors"
-                            title="Copy address"
-                          >
-                            <i className="fa-regular fa-copy"></i>
-                          </button>
                         )}
                       </div>
                     </div>
