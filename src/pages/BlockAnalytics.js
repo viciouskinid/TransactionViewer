@@ -56,6 +56,12 @@ export default function BlockAnalyticsPage() {
   const [latestBlockNumber, setLatestBlockNumber] = useState(null);
   const [initialLoad, setInitialLoad] = useState(true);
   const [useDateTime, setUseDateTime] = useState(false);
+  const [activeTab, setActiveTab] = useState('manual'); // 'manual' or 'timeRange'
+  const [timeRange, setTimeRange] = useState(24); // Hours
+  const [blockEstimationLoading, setBlockEstimationLoading] = useState(false);
+  const [estimatedFromBlock, setEstimatedFromBlock] = useState(null);
+  const [latestBlock, setLatestBlock] = useState(null);
+  const [sampleBlock, setSampleBlock] = useState(null);
 
   // Update RPC URL when chain changes
   const handleChainChange = (chainId) => {
@@ -151,6 +157,89 @@ export default function BlockAnalyticsPage() {
       initializeDefaults();
     }
   }, [rpcUrl, initialLoad, fromParam, toParam]);
+
+  // Estimate block range from time range
+  const estimateBlockRange = async () => {
+    if (!rpcUrl || !timeRange) return;
+    
+    setBlockEstimationLoading(true);
+    setError('');
+    
+    try {
+      // Get latest block
+      const latestBlockResponse = await fetch(rpcUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          jsonrpc: '2.0',
+          method: 'eth_getBlockByNumber',
+          params: ['latest', false],
+          id: 1,
+        }),
+      });
+
+      const latestBlockData = await latestBlockResponse.json();
+      if (!latestBlockData.result) {
+        throw new Error('Failed to fetch latest block');
+      }
+
+      const latest = {
+        number: parseInt(latestBlockData.result.number, 16),
+        timestamp: parseInt(latestBlockData.result.timestamp, 16),
+      };
+      setLatestBlock(latest);
+
+      // Get sample block (1000 blocks back)
+      const sampleBlockNumber = latest.number - 1000;
+      const sampleBlockResponse = await fetch(rpcUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          jsonrpc: '2.0',
+          method: 'eth_getBlockByNumber',
+          params: [`0x${sampleBlockNumber.toString(16)}`, false],
+          id: 2,
+        }),
+      });
+
+      const sampleBlockData = await sampleBlockResponse.json();
+      if (!sampleBlockData.result) {
+        throw new Error('Failed to fetch sample block');
+      }
+
+      const sample = {
+        number: parseInt(sampleBlockData.result.number, 16),
+        timestamp: parseInt(sampleBlockData.result.timestamp, 16),
+      };
+      setSampleBlock(sample);
+
+      // Calculate average block time
+      const avgBlockTime = (latest.timestamp - sample.timestamp) / (latest.number - sample.number);
+      console.log('Average block time:', avgBlockTime, 'seconds');
+
+      // Estimate from block number
+      const hoursInSeconds = timeRange * 3600;
+      const estimatedBlocksBack = Math.ceil(hoursInSeconds / avgBlockTime);
+      const fromBlockNum = Math.max(0, latest.number - estimatedBlocksBack);
+      
+      setEstimatedFromBlock(fromBlockNum);
+      setFromBlock(fromBlockNum.toString());
+
+    } catch (err) {
+      console.error('Block estimation error:', err);
+      setError(`Failed to estimate block range: ${err.message}`);
+    } finally {
+      setBlockEstimationLoading(false);
+    }
+  };
+
+  // Auto-estimate when time range changes
+  React.useEffect(() => {
+    if (rpcUrl && timeRange && activeTab === 'timeRange') {
+      const timeoutId = setTimeout(estimateBlockRange, 500);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [rpcUrl, timeRange, activeTab]);
 
   // Format numbers for display
   const formatNumber = (num) => {
@@ -289,11 +378,6 @@ export default function BlockAnalyticsPage() {
 
     if (from >= to) {
       setError('From block must be less than to block');
-      return;
-    }
-
-    if (to - from > 1000) {
-      setError('Range too large. Please limit to 1000 blocks maximum');
       return;
     }
 
@@ -487,76 +571,240 @@ export default function BlockAnalyticsPage() {
             Block Range Configuration
           </h2>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                From Block
-              </label>
-              <input
-                type="number"
-                value={fromBlock}
-                onChange={(e) => {
-                  setFromBlock(e.target.value);
-                  updateUrlParams({ from: e.target.value });
-                }}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                placeholder="24265653"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                To Block
-              </label>
-              <input
-                type="text"
-                value={toBlock}
-                onChange={(e) => {
-                  setToBlock(e.target.value);
-                  updateUrlParams({ to: e.target.value });
-                  // Stop polling if changing away from "latest"
-                  if (e.target.value.toLowerCase() !== 'latest') {
-                    setIsPolling(false);
-                  }
-                }}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                placeholder="24265753 or 'latest'"
-              />
-              <p className="text-xs text-gray-500 mt-1">
-                Use "latest" for real-time updates
-              </p>
-            </div>
-            <div className="flex items-end">
-              <button
-                onClick={fetchBatchBlockData}
-                disabled={loading}
-                className="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {loading ? (
-                  <>
-                    <i className="fas fa-spinner fa-spin mr-2"></i>
-                    Fetching...
-                  </>
-                ) : (
-                  <>
-                    <i className="fas fa-search mr-2"></i>
-                    Analyze Blocks
-                  </>
-                )}
-              </button>
-              
-              {/* X-Axis Toggle Button */}
-              {blockData.length > 0 && (
-                <button
-                  onClick={() => setUseDateTime(!useDateTime)}
-                  className="ml-3 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors duration-200 flex items-center"
-                  title={`Switch to ${useDateTime ? 'Block Numbers' : 'DateTime'}`}
-                >
-                  <i className={`fas ${useDateTime ? 'fa-hashtag' : 'fa-clock'} mr-2`}></i>
-                  {useDateTime ? 'Block' : 'Time'}
-                </button>
-              )}
-            </div>
+          {/* Tab Headers */}
+          <div className="flex space-x-1 mb-4">
+            <button
+              onClick={() => setActiveTab('manual')}
+              className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
+                activeTab === 'manual'
+                  ? 'bg-blue-500 text-white shadow-md'
+                  : 'text-gray-600 hover:bg-gray-100'
+              }`}
+            >
+              <i className="fas fa-edit mr-2"></i>
+              Manual Entry
+            </button>
+            <button
+              onClick={() => setActiveTab('timeRange')}
+              className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
+                activeTab === 'timeRange'
+                  ? 'bg-blue-500 text-white shadow-md'
+                  : 'text-gray-600 hover:bg-gray-100'
+              }`}
+            >
+              <i className="fas fa-clock mr-2"></i>
+              Time Range
+            </button>
           </div>
+
+          {/* Manual Entry Tab */}
+          {activeTab === 'manual' && (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  From Block
+                </label>
+                <input
+                  type="number"
+                  value={fromBlock}
+                  onChange={(e) => {
+                    setFromBlock(e.target.value);
+                    updateUrlParams({ from: e.target.value });
+                  }}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="24265653"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  To Block
+                </label>
+                <input
+                  type="text"
+                  value={toBlock}
+                  onChange={(e) => {
+                    setToBlock(e.target.value);
+                    updateUrlParams({ to: e.target.value });
+                    // Stop polling if changing away from "latest"
+                    if (e.target.value.toLowerCase() !== 'latest') {
+                      setIsPolling(false);
+                    }
+                  }}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="24265753 or 'latest'"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Use "latest" for real-time updates
+                </p>
+              </div>
+              <div className="flex items-end">
+                <button
+                  onClick={fetchBatchBlockData}
+                  disabled={loading}
+                  className="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {loading ? (
+                    <>
+                      <i className="fas fa-spinner fa-spin mr-2"></i>
+                      Fetching...
+                    </>
+                  ) : (
+                    <>
+                      <i className="fas fa-search mr-2"></i>
+                      Analyze Blocks
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Time Range Tab */}
+          {activeTab === 'timeRange' && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Time Range (Hours)
+                  </label>
+                  <input
+                    type="number"
+                    value={timeRange}
+                    onChange={(e) => setTimeRange(parseInt(e.target.value) || 24)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="24"
+                    min="1"
+                    max="168"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Number of hours back from latest block (1-168 hours)
+                  </p>
+                  {estimatedFromBlock !== null && latestBlock && (
+                    <p className="text-xs text-blue-600 mt-1">
+                      Estimated range: ~{formatNumber(latestBlock.number - estimatedFromBlock)} blocks
+                    </p>
+                  )}
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    To Block
+                  </label>
+                  <input
+                    type="text"
+                    value={toBlock}
+                    onChange={(e) => {
+                      setToBlock(e.target.value);
+                      updateUrlParams({ to: e.target.value });
+                      // Stop polling if changing away from "latest"
+                      if (e.target.value.toLowerCase() !== 'latest') {
+                        setIsPolling(false);
+                      }
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="latest"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Use "latest" for real-time updates
+                  </p>
+                </div>
+              </div>
+
+              {/* Block Estimation Info */}
+              {blockEstimationLoading && (
+                <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
+                  <div className="flex items-center">
+                    <i className="fas fa-spinner fa-spin text-blue-600 mr-2"></i>
+                    <span className="text-sm text-blue-800">Estimating block range...</span>
+                  </div>
+                </div>
+              )}
+
+              {estimatedFromBlock !== null && latestBlock && sampleBlock && !blockEstimationLoading && (
+                <div className="p-4 bg-green-50 border border-green-200 rounded-md">
+                  <h4 className="font-medium text-green-800 mb-2">
+                    <i className="fas fa-calculator mr-2"></i>
+                    Block Range Estimation
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                    <div>
+                      <span className="text-green-700 font-medium">Estimated From Block:</span>
+                      <div className="font-mono text-green-900">{formatNumber(estimatedFromBlock)}</div>
+                    </div>
+                    <div>
+                      <span className="text-green-700 font-medium">Latest Block:</span>
+                      <div className="font-mono text-green-900">{formatNumber(latestBlock.number)}</div>
+                    </div>
+                    <div>
+                      <span className="text-green-700 font-medium">Time Range:</span>
+                      <div className="font-mono text-green-900">{timeRange} hours</div>
+                    </div>
+                  </div>
+                  <div className="mt-2 text-xs text-green-600">
+                    Avg block time: {latestBlock && sampleBlock ? 
+                      ((latestBlock.timestamp - sampleBlock.timestamp) / (latestBlock.number - sampleBlock.number)).toFixed(1) + 's' 
+                      : 'Calculating...'
+                    } • Total blocks: {formatNumber(latestBlock.number - estimatedFromBlock)}
+                  </div>
+                  {(latestBlock.number - estimatedFromBlock) > 5000 && (
+                    <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded text-xs text-yellow-800">
+                      <i className="fas fa-exclamation-triangle mr-1"></i>
+                      Large range detected. This may take longer to process.
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <div className="flex items-center space-x-4">
+                <button
+                  onClick={() => {
+                    if (estimatedFromBlock) {
+                      // Update the from block in manual entry
+                      setFromBlock(estimatedFromBlock.toString());
+                      updateUrlParams({ from: estimatedFromBlock.toString() });
+                      // Switch to manual entry tab
+                      setActiveTab('manual');
+                      // Fetch the data
+                      setTimeout(() => fetchBatchBlockData(), 100);
+                    }
+                  }}
+                  disabled={loading || !estimatedFromBlock}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {loading ? (
+                    <>
+                      <i className="fas fa-spinner fa-spin mr-2"></i>
+                      Fetching...
+                    </>
+                  ) : (
+                    <>
+                      <i className="fas fa-search mr-2"></i>
+                      Analyze Blocks
+                    </>
+                  )}
+                </button>
+                
+                {!estimatedFromBlock && !blockEstimationLoading && (
+                  <span className="text-sm text-gray-500">
+                    Adjust time range to estimate block range
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+          
+          {/* X-Axis Toggle Button (outside tabs) */}
+          {blockData.length > 0 && (
+            <div className="mt-4 flex justify-end">
+              <button
+                onClick={() => setUseDateTime(!useDateTime)}
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors duration-200 flex items-center"
+                title={`Switch to ${useDateTime ? 'Block Numbers' : 'DateTime'}`}
+              >
+                <i className={`fas ${useDateTime ? 'fa-hashtag' : 'fa-clock'} mr-2`}></i>
+                {useDateTime ? 'Block' : 'Time'}
+              </button>
+            </div>
+          )}
           
           {/* Polling Status */}
           {isPolling && (
