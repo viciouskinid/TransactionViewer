@@ -310,12 +310,39 @@ export default function BlockAnalyticsPage() {
             gasUsed: parseInt(block.gasUsed, 16),
             gasLimit: parseInt(block.gasLimit, 16),
             baseFeePerGas: block.baseFeePerGas ? parseInt(block.baseFeePerGas, 16) / 1e9 : 0,
-            utilization: parseFloat(calculateUtilization(block.gasUsed, block.gasLimit))
+            utilization: parseFloat(calculateUtilization(block.gasUsed, block.gasLimit)),
+            transactionCount: block.transactions.length,
+            size: parseInt(block.size || '0x0', 16)
           };
         })
         .sort((a, b) => a.blockNumber - b.blockNumber);
 
+      // Calculate block times for new blocks
       if (newBlocks.length > 0) {
+        const currentData = blockData;
+        
+        // Calculate block time for each new block
+        newBlocks.forEach((newBlock, index) => {
+          let previousTimestamp;
+          
+          if (index === 0) {
+            // First new block - use the last block from existing data
+            if (currentData.length > 0) {
+              const lastExistingBlock = currentData[currentData.length - 1];
+              previousTimestamp = lastExistingBlock.timestamp;
+            } else {
+              // No existing data, use default
+              newBlock.blockTime = 12; // Default to 12 seconds
+              return;
+            }
+          } else {
+            // Use previous new block
+            previousTimestamp = newBlocks[index - 1].timestamp;
+          }
+          
+          newBlock.blockTime = newBlock.timestamp - previousTimestamp;
+        });
+        
         // Append new blocks to existing data
         setBlockData(prevData => [...prevData, ...newBlocks]);
         setLatestBlockNumber(Math.max(...newBlocks.map(b => b.blockNumber)));

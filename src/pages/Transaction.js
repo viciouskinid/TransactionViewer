@@ -47,6 +47,15 @@ const decodeInputWithABI = (input, abis) => {
   return null;
 };
 
+// Helper function to extract method ID from input data
+const getMethodId = (input) => {
+  if (!input || typeof input !== 'string' || input.length < 10) {
+    return null;
+  }
+  // Method ID is the first 4 bytes (8 hex characters) after '0x'
+  return input.slice(0, 10);
+};
+
 // Helper function to decode logs using a given ABI
 const decodeLogsWithABI = (logs, abis) => {
   if (!logs || !window.ethers) {
@@ -1019,6 +1028,60 @@ export default function TransactionPage({ txHash: txHashProp }) {
                 </div>
               </div>
             </div>
+            )}
+
+            {/* --- Raw Input Section (when input exists but cannot be decoded) --- */}
+            {!decodedInputData && transactionData && transactionData.input && transactionData.input !== '0x' && (
+              <div className="w-full max-w-2xl bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700">
+                <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center -m-6 mb-6">
+                  <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-200">Input (Raw)</h3>
+                  <span className="text-xs bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 px-2 py-1 rounded">
+                    Could not decode
+                  </span>
+                </div>
+                
+                <div className="text-sm space-y-4">
+                  <div>
+                    <p className="font-medium text-gray-600 dark:text-gray-400 mb-2">Method ID:</p>
+                    <div className="flex items-center bg-gray-100 dark:bg-gray-700 p-2 rounded border border-gray-200 dark:border-gray-600">
+                      <code className="font-mono text-gray-800 dark:text-gray-200 text-xs flex-1">
+                        {getMethodId(transactionData.input)}
+                      </code>
+                      <button 
+                        onClick={() => navigator.clipboard?.writeText(getMethodId(transactionData.input))}
+                        className="text-gray-400 hover:text-blue-500 ml-2 transition-colors"
+                        title="Copy method ID"
+                      >
+                        <i className="fa-regular fa-copy"></i>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <p className="font-medium text-gray-600 dark:text-gray-400 mb-2">Raw Input Data:</p>
+                    <div className="bg-gray-100 dark:bg-gray-700 p-2 rounded border border-gray-200 dark:border-gray-600 max-h-32 overflow-y-auto">
+                      <div className="flex items-start">
+                        <code className="font-mono text-gray-800 dark:text-gray-200 text-xs break-all flex-1">
+                          {transactionData.input}
+                        </code>
+                        <button 
+                          onClick={() => navigator.clipboard?.writeText(transactionData.input)}
+                          className="text-gray-400 hover:text-blue-500 ml-2 transition-colors flex-shrink-0 sticky top-0"
+                          title="Copy raw input"
+                        >
+                          <i className="fa-regular fa-copy"></i>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-900 p-2 rounded">
+                    <i className="fas fa-info-circle mr-1"></i>
+                    This transaction contains input data that could not be decoded with the available ABIs. 
+                    The method ID represents the function being called, and the raw data contains the encoded parameters.
+                  </div>
+                </div>
+              </div>
             )}
           </div>
 
