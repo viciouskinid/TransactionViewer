@@ -5,6 +5,8 @@ import uniswapV2RouterABI from './uniswapV2Router.json';
 import uniswapV2PairABI from './uniswapV2Pair.json';
 import uniswapV3PoolABI from './uniswapV3Pool.json';
 import multicallABI from './multicall.json';
+import aaveWethGatewayABI from './aaveWethGateway.json';
+import piteasRouterABI from './piteasRouter.json';
 
 // Export individual ABIs
 export { 
@@ -13,7 +15,9 @@ export {
   uniswapV2RouterABI, 
   uniswapV2PairABI, 
   uniswapV3PoolABI, 
-  multicallABI 
+  multicallABI,
+  aaveWethGatewayABI,
+  piteasRouterABI 
 };
 
 // Export combined ABI for transaction decoding
@@ -23,14 +27,18 @@ export const allABIs = [
   ...uniswapV2RouterABI,
   ...uniswapV2PairABI,
   ...uniswapV3PoolABI,
-  ...multicallABI
+  ...multicallABI,
+  ...aaveWethGatewayABI,
+  ...piteasRouterABI
 ];
 
 // Export ABI collections by category
 export const defiABIs = [
   ...uniswapV2RouterABI,
   ...uniswapV2PairABI,
-  ...uniswapV3PoolABI
+  ...uniswapV3PoolABI,
+  ...aaveWethGatewayABI,
+  ...piteasRouterABI
 ];
 
 export const tokenABIs = [
