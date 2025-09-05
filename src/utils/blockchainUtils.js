@@ -308,19 +308,47 @@ export const formatTokenBalance = (balance, decimals = 18) => {
   try {
     if (!balance || balance === '0') return '0';
     
-    // Convert balance to string if it's an object
+    // Convert balance to string if it's an object or array
     let balanceStr = balance;
-    if (typeof balance === 'object' && balance !== null) {
-      if (balance.toString) {
-        balanceStr = balance.toString();
-      } else if (balance.hex) {
-        balanceStr = window.ethers ? window.ethers.BigNumber.from(balance.hex).toString() : balance.hex;
+    
+    // Handle array format (common from multicall results)
+    if (Array.isArray(balance)) {
+      if (balance.length === 0) return '0';
+      balanceStr = balance[0];
+    }
+    
+    if (typeof balanceStr === 'object' && balanceStr !== null) {
+      if (balanceStr.toString) {
+        balanceStr = balanceStr.toString();
+      } else if (balanceStr.hex) {
+        balanceStr = window.ethers ? window.ethers.BigNumber.from(balanceStr.hex).toString() : balanceStr.hex;
       } else {
         balanceStr = '0';
       }
     } else {
-      balanceStr = String(balance);
+      balanceStr = String(balanceStr);
     }
+    
+    // Clean up the string (remove quotes, whitespace, etc.)
+    balanceStr = balanceStr.replace(/["\s]/g, '');
+    
+    // Handle cases where the string looks like "[123]" - parse as JSON
+    if (balanceStr.startsWith('[') && balanceStr.endsWith(']')) {
+      try {
+        const parsed = JSON.parse(balanceStr);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          balanceStr = String(parsed[0]);
+        }
+      } catch (jsonError) {
+        // If JSON parsing fails, try to extract the number manually
+        const match = balanceStr.match(/\[(\d+)\]/);
+        if (match && match[1]) {
+          balanceStr = match[1];
+        }
+      }
+    }
+    
+    if (!balanceStr || balanceStr === '0') return '0';
     
     // Handle ethers.js
     if (window.ethers && window.ethers.BigNumber) {
@@ -354,6 +382,7 @@ export const formatTokenBalance = (balance, decimals = 18) => {
     }
   } catch (error) {
     console.error('Error formatting token balance:', error);
+    console.error('Input balance was:', balance);
     return String(balance || '0');
   }
 };

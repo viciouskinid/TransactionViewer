@@ -4,6 +4,7 @@ import TransferPage from './pages/Transfer';
 import AddressTagsPage from './pages/AddressTags';
 import ContractReaderPage from './pages/ContractReader';
 import TokenBalancePage from './pages/TokenBalance';
+import AdvancedTokenBalancePage from './pages/AdvancedTokenBalance';
 import BlockAnalyticsPage from './pages/BlockAnalytics';
 
 export default function App() {
@@ -17,10 +18,11 @@ export default function App() {
   const isAddressTagsPage = pathname.includes('/address-tags') || hash.includes('/address-tags');
   const isContractReaderPage = pathname.includes('/contract-reader') || hash.includes('/contract-reader');
   const isTokenBalancePage = pathname.includes('/token-balance') || hash.includes('/token-balance');
+  const isAdvancedTokenBalancePage = pathname.includes('/advanced-token-balance') || hash.includes('/advanced-token-balance');
   const isBlockAnalyticsPage = pathname.includes('/block-analytics') || hash.includes('/block-analytics');
   
   // Default to transaction page if no specific page is detected
-  const isRootPage = !isTransactionPage && !isTransferPage && !isAddressTagsPage && !isContractReaderPage && !isTokenBalancePage && !isBlockAnalyticsPage;
+  const isRootPage = !isTransactionPage && !isTransferPage && !isAddressTagsPage && !isContractReaderPage && !isTokenBalancePage && !isAdvancedTokenBalancePage && !isBlockAnalyticsPage;
 
   // Navigation function
   const navigateToPage = (page) => {
@@ -110,6 +112,18 @@ export default function App() {
               </button>
               
               <button
+                onClick={() => navigateToPage('advanced-token-balance')}
+                className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
+                  isAdvancedTokenBalancePage
+                    ? 'bg-blue-500 text-white shadow-md'
+                    : 'text-gray-600 hover:bg-gray-100'
+                }`}
+              >
+                <i className="fas fa-file-upload mr-2"></i>
+                Advanced Balance
+              </button>
+              
+              <button
                 onClick={() => navigateToPage('block-analytics')}
                 className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
                   isBlockAnalyticsPage
@@ -175,6 +189,13 @@ export default function App() {
                     Token Balance
                   </button>
                   <button
+                    onClick={() => navigateToPage('advanced-token-balance')}
+                    className="px-6 py-3 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition-colors duration-200 flex items-center"
+                  >
+                    <i className="fas fa-file-upload mr-2"></i>
+                    Advanced Balance
+                  </button>
+                  <button
                     onClick={() => navigateToPage('block-analytics')}
                     className="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors duration-200 flex items-center"
                   >
@@ -191,6 +212,7 @@ export default function App() {
         {isAddressTagsPage && <AddressTagsPage />}
         {isContractReaderPage && <ContractReaderPage />}
         {isTokenBalancePage && <TokenBalancePage />}
+        {isAdvancedTokenBalancePage && <AdvancedTokenBalancePage />}
         {isBlockAnalyticsPage && <BlockAnalyticsPage />}
       </main>
     </div>
