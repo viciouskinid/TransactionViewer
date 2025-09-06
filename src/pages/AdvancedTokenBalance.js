@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import { 
   makeMulticall, 
   createERC20BalanceCall, 
@@ -38,10 +38,18 @@ const AdvancedTokenBalanceChecker = () => {
             // Provide fallback configuration when file is not found
             console.warn('Default config file not found, using fallback configuration');
             const fallbackConfig = {
-              "https://rpc-pulsechain.g4mm4.io": {
-                "0x0000000000000000000000000000000000000000": {
-                  "name": "Example Wallet",
-                  "tokens": ["0x15D38573d2feeb82e7ad5187aB8c1D52810B1f07"]
+              "rpc": {
+                "https://rpc-pulsechain.g4mm4.io": {
+                  "0x0000000000000000000000000000000000000000": {
+                    "name": "Example Wallet",
+                    "tokens": ["0x15D38573d2feeb82e7ad5187aB8c1D52810B1f07"]
+                  }
+                }
+              },
+              "tokenGroups": {
+                "USD": {
+                  "description": "USD-pegged tokens",
+                  "tokens": []
                 }
               }
             };
@@ -53,10 +61,18 @@ const AdvancedTokenBalanceChecker = () => {
           console.error('Could not load default config file:', error);
           // Provide fallback configuration on any error
           const fallbackConfig = {
-            "https://rpc-pulsechain.g4mm4.io": {
-              "0x0000000000000000000000000000000000000000": {
-                "name": "Example Wallet",
-                "tokens": ["0x15D38573d2feeb82e7ad5187aB8c1D52810B1f07"]
+            "rpc": {
+              "https://rpc-pulsechain.g4mm4.io": {
+                "0x0000000000000000000000000000000000000000": {
+                  "name": "Example Wallet",
+                  "tokens": ["0x15D38573d2feeb82e7ad5187aB8c1D52810B1f07"]
+                }
+              }
+            },
+            "tokenGroups": {
+              "USD": {
+                "description": "USD-pegged tokens",
+                "tokens": []
               }
             }
           };
@@ -143,7 +159,15 @@ const AdvancedTokenBalanceChecker = () => {
     try {
       const allResults = [];
       
-      for (const [rpcUrl, eoaData] of Object.entries(configData)) {
+      // Check if the config has the new "rpc" structure
+      const rpcData = configData.rpc || configData;
+      
+      for (const [rpcUrl, eoaData] of Object.entries(rpcData)) {
+        // Skip non-RPC url keys
+        if (!rpcUrl.startsWith('http')) {
+          continue;
+        }
+        
         console.log(`Processing RPC: ${rpcUrl}`);
         
         // Build all calls for this RPC
@@ -357,6 +381,72 @@ const AdvancedTokenBalanceChecker = () => {
     window.URL.revokeObjectURL(url);
   };
 
+  // Calculate token group totals based on configuration
+  const calculateTokenGroupTotals = () => {
+    // If no token groups defined, return empty object
+    if (!configData.tokenGroups) {
+      return {};
+    }
+
+    const totals = {};
+
+    // Initialize each token group
+    Object.entries(configData.tokenGroups).forEach(([groupName, groupInfo]) => {
+      totals[groupName] = {
+        tokens: [],
+        totalWei: window.ethers.BigNumber.from(0),
+        totalFormatted: '0'
+      };
+
+      // Find matching tokens in results
+      results.forEach(result => {
+        if (result.status !== 'success' || !result.balance) return;
+        
+        // Check if this token is part of the group
+        const isInGroup = groupInfo.tokens.some(
+          tokenAddr => tokenAddr.toLowerCase() === result.tokenAddress.toLowerCase()
+        );
+
+        if (isInGroup) {
+          try {
+            // Add to the running total
+            const balanceInWei = window.ethers.BigNumber.from(result.balance);
+            
+            // Add this token to the group's tokens list if not already included
+            const existingToken = totals[groupName].tokens.find(
+              t => t.tokenAddress.toLowerCase() === result.tokenAddress.toLowerCase()
+            );
+            
+            if (!existingToken) {
+              totals[groupName].tokens.push({
+                tokenAddress: result.tokenAddress,
+                tokenSymbol: result.tokenSymbol,
+                tokenDecimals: result.tokenDecimals,
+                balanceInWei
+              });
+            } else {
+              // Add balance to existing token entry
+              existingToken.balanceInWei = existingToken.balanceInWei.add(balanceInWei);
+            }
+            
+            // We don't actually add different tokens' wei values together as that's not meaningful
+            // Instead, we'll just track the individual token balances and show the formatted values
+            
+            // For formatted display, we convert to number and add
+            const formattedValue = parseFloat(result.formattedBalance) || 0;
+            totals[groupName].totalFormatted = (
+              parseFloat(totals[groupName].totalFormatted) + formattedValue
+            ).toFixed(4).replace(/\.?0+$/, '');
+          } catch (error) {
+            console.error('Error calculating token group total:', error);
+          }
+        }
+      });
+    });
+
+    return totals;
+  };
+
   return (
     <div className="min-h-screen bg-gray-100 py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -483,20 +573,32 @@ const AdvancedTokenBalanceChecker = () => {
               <p className="text-blue-700 mb-2">The JSON should follow this structure:</p>
               <pre className="text-sm font-mono bg-white p-3 rounded border text-gray-700 mb-3">
 {`{
-  "RPC_URL_1": {
-    "EOA_ADDRESS_1": {
-      "name": "Wallet Name 1",
-      "tokens": ["TOKEN_ADDRESS_1", "TOKEN_ADDRESS_2"]
+  "rpc": {
+    "RPC_URL_1": {
+      "EOA_ADDRESS_1": {
+        "name": "Wallet Name 1",
+        "tokens": ["TOKEN_ADDRESS_1", "TOKEN_ADDRESS_2"]
+      },
+      "EOA_ADDRESS_2": {
+        "name": "Wallet Name 2", 
+        "tokens": ["TOKEN_ADDRESS_3"]
+      }
     },
-    "EOA_ADDRESS_2": {
-      "name": "Wallet Name 2", 
-      "tokens": ["TOKEN_ADDRESS_3"]
+    "RPC_URL_2": {
+      "EOA_ADDRESS_3": {
+        "name": "Wallet Name 3",
+        "tokens": ["TOKEN_ADDRESS_4", "TOKEN_ADDRESS_5"]
+      }
     }
   },
-  "RPC_URL_2": {
-    "EOA_ADDRESS_3": {
-      "name": "Wallet Name 3",
-      "tokens": ["TOKEN_ADDRESS_4", "TOKEN_ADDRESS_5"]
+  "tokenGroups": {
+    "Group Name 1": {
+      "description": "Description of token group",
+      "tokens": ["TOKEN_ADDRESS_1", "TOKEN_ADDRESS_2"]
+    },
+    "Group Name 2": {
+      "description": "Another token group",
+      "tokens": ["TOKEN_ADDRESS_3", "TOKEN_ADDRESS_4"]
     }
   }
 }`}
@@ -505,6 +607,8 @@ const AdvancedTokenBalanceChecker = () => {
                 <p className="font-medium mb-1">Reliable RPC Endpoints:</p>
                 <p><strong>PulseChain:</strong> https://rpc-pulsechain.g4mm4.io, https://rpc.pulsechain.com</p>
                 <p><strong>Polygon:</strong> https://polygon-rpc.com, https://rpc.ankr.com/polygon</p>
+                <p className="mt-2 font-medium mb-1">Token Groups:</p>
+                <p>Add a <code>tokenGroups</code> section to define token groupings for the totals table.</p>
               </div>
             </div>
 
@@ -548,6 +652,50 @@ const AdvancedTokenBalanceChecker = () => {
                 )}
               </button>
             </div>
+
+            {/* Token Group Totals Section */}
+            {results.length > 0 && configData.tokenGroups && Object.keys(configData.tokenGroups).length > 0 && (
+              <div className="mb-8">
+                <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center">
+                  <i className="fas fa-calculator mr-2"></i>
+                  Token Group Totals
+                </h2>
+                
+                <div className="overflow-x-auto">
+                  <table className="min-w-full bg-white border border-gray-200 rounded-lg">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Group Name</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Balance</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Token Count</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200">
+                      {Object.entries(calculateTokenGroupTotals()).map(([groupName, groupData], index) => (
+                        <tr key={index} className="bg-white hover:bg-gray-50">
+                          <td className="px-4 py-3 text-sm font-medium text-gray-900">
+                            {groupName}
+                          </td>
+                          <td className="px-4 py-3 text-sm text-gray-600">
+                            {configData.tokenGroups[groupName]?.description || ''}
+                          </td>
+                          <td className="px-4 py-3 text-sm font-medium text-gray-900">
+                            {groupData.totalFormatted}
+                            <div className="text-xs text-gray-500">
+                              ({groupData.tokens.map(t => t.tokenSymbol).join(', ')})
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 text-sm text-gray-900">
+                            {groupData.tokens.length}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
 
             {/* Results Section */}
             {results.length > 0 && (
