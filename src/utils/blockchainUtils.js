@@ -20,74 +20,6 @@ export const standardAbis = {
 // Default Multicall3 address (same across most chains)
 export const DEFAULT_MULTICALL3_ADDRESS = "0xcA11bde05977b3631167028862bE2a173976CA11";
 
-// Helper function to format BigNumber values for display
-export const formatResult = (value) => {
-  if (typeof value === 'bigint') {
-    return value.toString();
-  }
-  if (window.ethers && window.ethers.BigNumber && window.ethers.BigNumber.isBigNumber(value)) {
-    return value.toString();
-  }
-  if (typeof value === 'object' && value !== null) {
-    // Handle objects with hex property (common BigNumber format)
-    if (value.hex) {
-      try {
-        if (window.ethers && window.ethers.BigNumber) {
-          return window.ethers.BigNumber.from(value.hex).toString();
-        } else {
-          return value.hex;
-        }
-      } catch {
-        return value.hex;
-      }
-    }
-    
-    // Handle other objects by stringifying with BigInt/BigNumber conversion
-    try {
-      return JSON.stringify(value, (key, val) => {
-        if (typeof val === 'bigint') {
-          return val.toString();
-        }
-        if (window.ethers && window.ethers.BigNumber && window.ethers.BigNumber.isBigNumber(val)) {
-          return val.toString();
-        }
-        if (typeof val === 'object' && val !== null && val.hex) {
-          try {
-            return window.ethers ? window.ethers.BigNumber.from(val.hex).toString() : val.hex;
-          } catch {
-            return val.hex;
-          }
-        }
-        return val;
-      }, 2);
-    } catch {
-      return String(value);
-    }
-  }
-  return String(value);
-};
-
-// Helper function to convert parameters based on type
-export const convertParameter = (value, type) => {
-  if (type.startsWith('uint') || type.startsWith('int')) {
-    if (window.ethers.BigNumber) {
-      return window.ethers.BigNumber.from(value);
-    } else {
-      return value.toString();
-    }
-  } else if (type === 'bool') {
-    return value.toLowerCase() === 'true';
-  } else if (type === 'address') {
-    if (window.ethers.utils && window.ethers.utils.isAddress) {
-      if (!window.ethers.utils.isAddress(value)) {
-        throw new Error(`Invalid address: ${value}`);
-      }
-    }
-    return value;
-  }
-  return value;
-};
-
 // Generate call data for a function call
 export const generateCallData = (abi, methodName, parameters = []) => {
   if (!window.ethers) {
@@ -100,78 +32,43 @@ export const generateCallData = (abi, methodName, parameters = []) => {
   }
 
   try {
-    const fragment = window.ethers.utils.FunctionFragment.from(method);
-    let callData = '';
-    
-    if (window.ethers.utils.Interface) {
-      // ethers v5
-      const iface = new window.ethers.utils.Interface([method]);
-      callData = iface.encodeFunctionData(methodName, parameters);
-    } else if (window.ethers.Interface) {
-      // ethers v6
-      const iface = new window.ethers.Interface([method]);
-      callData = iface.encodeFunctionData(methodName, parameters);
-    } else {
-      // Manual encoding fallback
-      const encodedData = window.ethers.utils.defaultAbiCoder.encode(
-        fragment.inputs.map(input => input.type),
-        parameters
-      );
-      callData = fragment.selector + encodedData.substring(2);
-    }
-    
+    const iface = new window.ethers.utils.Interface([method]);
+    const callData = iface.encodeFunctionData(methodName, parameters);
     return callData;
   } catch (error) {
     throw new Error(`Error encoding call data: ${error.message}`);
   }
 };
 
-// Make a single contract call
-export const makeSingleCall = async (rpcUrl, contractAddress, abi, methodName, parameters = []) => {
-  if (!window.ethers) {
-    throw new Error('Ethers.js not loaded');
+// Make a direct RPC call without provider (no eth_chainId needed)
+const makeDirectRpcCall = async (rpcUrl, method, params) => {
+  const response = await fetch(rpcUrl, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      jsonrpc: '2.0',
+      id: 1,
+      method: method,
+      params: params
+    })
+  });
+
+  if (!response.ok) {
+    throw new Error(`RPC request failed: ${response.status} ${response.statusText}`);
   }
 
-  if (!rpcUrl || !contractAddress || !methodName) {
-    throw new Error('Missing required parameters: rpcUrl, contractAddress, or methodName');
+  const data = await response.json();
+  
+  if (data.error) {
+    throw new Error(`RPC error: ${data.error.message}`);
   }
 
-  try {
-    // Convert parameters to appropriate types
-    const method = abi.find(item => item.type === 'function' && item.name === methodName);
-    if (!method) {
-      throw new Error(`Method "${methodName}" not found in ABI`);
-    }
-
-    const convertedParams = parameters.map((param, index) => {
-      if (method.inputs[index]) {
-        return convertParameter(param, method.inputs[index].type);
-      }
-      return param;
-    });
-
-    // Create provider and contract
-    const provider = new window.ethers.providers.JsonRpcProvider(rpcUrl);
-    const contract = new window.ethers.Contract(contractAddress, abi, provider);
-
-    // Make the call
-    const result = await contract[methodName](...convertedParams);
-    
-    // Generate call data for reference
-    const callData = generateCallData(abi, methodName, convertedParams);
-
-    return {
-      result: formatResult(result),
-      callData,
-      success: true
-    };
-
-  } catch (error) {
-    throw new Error(`Single call failed: ${error.message}`);
-  }
+  return data.result;
 };
 
-// Make a multicall using Multicall3
+// Make a multicall using direct RPC call (no provider needed - no eth_chainId!)
 export const makeMulticall = async (rpcUrl, multicallAddress, calls) => {
   if (!window.ethers) {
     throw new Error('Ethers.js not loaded');
@@ -182,81 +79,74 @@ export const makeMulticall = async (rpcUrl, multicallAddress, calls) => {
   }
 
   try {
-    const provider = new window.ethers.providers.JsonRpcProvider(rpcUrl);
-    const multicallContract = new window.ethers.Contract(multicallAddress, standardAbis.multicall3, provider);
-
+    // Create interface for encoding the call
+    const multicallInterface = new window.ethers.utils.Interface(standardAbis.multicall3);
+    
     // Prepare calls array
     const formattedCalls = calls.map(call => ({
       target: call.target,
       callData: call.callData
     }));
 
-    // Use tryAggregate to allow individual call failures
+    // Encode the tryAggregate call
     const requireSuccess = false;
-    const result = await multicallContract.tryAggregate(requireSuccess, formattedCalls);
+    const callData = multicallInterface.encodeFunctionData('tryAggregate', [requireSuccess, formattedCalls]);
+
+    // Make direct eth_call (no provider, no eth_chainId!)
+    const result = await makeDirectRpcCall(rpcUrl, 'eth_call', [
+      {
+        to: multicallAddress,
+        data: callData
+      },
+      'latest'
+    ]);
+
+    // Decode the result
+    const decodedResult = multicallInterface.decodeFunctionResult('tryAggregate', result);
+    const returnData = decodedResult[0]; // tryAggregate returns array of results
 
     // Process results
-    const processedResults = result.map((item, index) => {
+    const processedResults = returnData.map((item, index) => {
       const success = item.success;
-      const returnData = item.returnData;
+      const returnDataItem = item.returnData;
       const originalCall = calls[index];
 
-      let decodedResult = returnData;
-
-      // Attempt to decode the result if we have ABI information
-      if (success && returnData && originalCall.abi && originalCall.methodName) {
+      let decodedResult = null;
+      if (success && originalCall.abi && originalCall.methodName) {
         try {
-          const method = originalCall.abi.find(abiItem => 
-            abiItem.type === 'function' && abiItem.name === originalCall.methodName
-          );
-
-          if (method && method.outputs && method.outputs.length > 0) {
-            const outputTypes = method.outputs.map(output => output.type);
-            
-            if (window.ethers.utils && window.ethers.utils.defaultAbiCoder) {
-              const decoded = window.ethers.utils.defaultAbiCoder.decode(outputTypes, returnData);
-              decodedResult = formatResult(decoded);
-            }
+          const contractInterface = new window.ethers.utils.Interface(originalCall.abi);
+          const rawDecoded = contractInterface.decodeFunctionResult(originalCall.methodName, returnDataItem);
+          
+          // Convert BigNumber objects to strings to prevent React rendering errors
+          if (Array.isArray(rawDecoded)) {
+            decodedResult = rawDecoded.map(item => {
+              if (item && typeof item === 'object' && item._hex && item._isBigNumber) {
+                return item.toString();
+              }
+              return item;
+            });
+          } else if (rawDecoded && typeof rawDecoded === 'object' && rawDecoded._hex && rawDecoded._isBigNumber) {
+            decodedResult = rawDecoded.toString();
+          } else {
+            decodedResult = rawDecoded;
           }
-        } catch (decodeError) {
-          decodedResult = `Decode error: ${decodeError.message} (Raw: ${returnData})`;
+        } catch (error) {
+          console.warn(`Failed to decode result for call ${index}:`, error);
         }
-      } else if (!success) {
-        decodedResult = `Call failed (Raw: ${returnData})`;
       }
 
       return {
-        callIndex: index,
-        target: originalCall.target,
-        methodName: originalCall.methodName || 'unknown',
         success,
-        result: decodedResult,
-        rawData: returnData
+        result: decodedResult || returnDataItem,
+        rawData: returnDataItem,
+        call: originalCall
       };
     });
 
-    // Generate aggregate call data for reference
-    const tryAggregateMethod = standardAbis.multicall3.find(
-      item => item.type === 'function' && item.name === 'tryAggregate'
-    );
-
-    let aggregateCallData = '';
-    try {
-      const fragment = window.ethers.utils.FunctionFragment.from(tryAggregateMethod);
-      if (window.ethers.utils.Interface) {
-        const iface = new window.ethers.utils.Interface([tryAggregateMethod]);
-        aggregateCallData = iface.encodeFunctionData('tryAggregate', [requireSuccess, formattedCalls]);
-      }
-    } catch (error) {
-      aggregateCallData = `Error encoding aggregate call data: ${error.message}`;
-    }
-
     return {
-      results: processedResults,
-      aggregateCallData,
       success: true,
-      totalCalls: calls.length,
-      successfulCalls: processedResults.filter(r => r.success).length
+      results: processedResults,
+      blockNumber: null // Not available with direct RPC call
     };
 
   } catch (error) {

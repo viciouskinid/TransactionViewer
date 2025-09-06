@@ -32,12 +32,37 @@ const AdvancedTokenBalanceChecker = () => {
             const defaultConfig = await response.json();
             setConfigData(defaultConfig);
             setEditingConfig(JSON.stringify(defaultConfig, null, 2));
+            setSuccessMessage('Default configuration loaded successfully');
             console.log('Loaded default config from file');
           } else {
-            console.error('Default config file not found');
+            // Provide fallback configuration when file is not found
+            console.warn('Default config file not found, using fallback configuration');
+            const fallbackConfig = {
+              "https://rpc-pulsechain.g4mm4.io": {
+                "0x0000000000000000000000000000000000000000": {
+                  "name": "Example Wallet",
+                  "tokens": ["0x15D38573d2feeb82e7ad5187aB8c1D52810B1f07"]
+                }
+              }
+            };
+            setConfigData(fallbackConfig);
+            setEditingConfig(JSON.stringify(fallbackConfig, null, 2));
+            setError('Default configuration file not found. Using example configuration. Please upload your own configuration or edit the example below.');
           }
         } catch (error) {
           console.error('Could not load default config file:', error);
+          // Provide fallback configuration on any error
+          const fallbackConfig = {
+            "https://rpc-pulsechain.g4mm4.io": {
+              "0x0000000000000000000000000000000000000000": {
+                "name": "Example Wallet",
+                "tokens": ["0x15D38573d2feeb82e7ad5187aB8c1D52810B1f07"]
+              }
+            }
+          };
+          setConfigData(fallbackConfig);
+          setEditingConfig(JSON.stringify(fallbackConfig, null, 2));
+          setError('Error loading configuration file. Using example configuration. Please upload your own configuration or edit the example below.');
         }
       }
     };
@@ -101,54 +126,7 @@ const AdvancedTokenBalanceChecker = () => {
     setIsEditing(false);
   };
 
-  // Get token info
-  const getTokenInfo = async (rpcUrl, tokenAddress) => {
-    try {
-      console.log(`Getting token info for ${tokenAddress} on ${rpcUrl}`);
-      const calls = createERC20InfoCalls(tokenAddress);
-      const multicallAddress = '0xcA11bde05977b3631167028862bE2a173976CA11';
-      const results = await makeMulticall(rpcUrl, multicallAddress, calls);
-      
-      console.log('Token info results:', results);
-      
-      if (results && results.results && results.results.length >= 3) {
-        const nameResult = results.results[0];
-        const symbolResult = results.results[1];
-        const decimalsResult = results.results[2];
-        
-        // Extract values from array format if needed
-        const extractValue = (result) => {
-          if (!result.success) return null;
-          let value = result.result;
-          if (Array.isArray(value) && value.length > 0) {
-            return value[0];
-          }
-          return value;
-        };
-        
-        const name = extractValue(nameResult) || 'Unknown';
-        const symbol = extractValue(symbolResult) || 'UNK';
-        const decimalsValue = extractValue(decimalsResult);
-        const decimals = decimalsValue ? parseInt(decimalsValue) || 18 : 18;
-        
-        return {
-          name,
-          symbol,
-          decimals
-        };
-      }
-    } catch (error) {
-      console.error('Error getting token info:', error);
-    }
-    
-    return {
-      name: 'Unknown Token',
-      symbol: 'UNK',
-      decimals: 18
-    };
-  };
-
-  // Check balances
+  // Check balances with efficient batching (one multicall per RPC)
   const checkAllBalances = async () => {
     setLoading(true);
     setError('');
@@ -168,89 +146,153 @@ const AdvancedTokenBalanceChecker = () => {
       for (const [rpcUrl, eoaData] of Object.entries(configData)) {
         console.log(`Processing RPC: ${rpcUrl}`);
         
-        for (const [eoaAddress, eoaInfo] of Object.entries(eoaData)) {
-          // Handle both old format (array) and new format (object with name and tokens)
-          const eoaName = eoaInfo.name || eoaAddress.slice(0, 10) + '...';
-          const tokenAddresses = eoaInfo.tokens || eoaInfo; // Support both formats
+        // Build all calls for this RPC
+        const allCalls = [];
+        const callMetadata = []; // Track what each call is for
+        
+        // First, get all unique tokens for info calls
+        const uniqueTokens = new Set();
+        for (const [, eoaInfo] of Object.entries(eoaData)) {
+          const tokenAddresses = eoaInfo.tokens || eoaInfo;
+          tokenAddresses.forEach(token => uniqueTokens.add(token));
+        }
+        
+        // Add token info calls (name, symbol, decimals for each unique token)
+        const tokenInfoMap = {};
+        for (const tokenAddress of uniqueTokens) {
+          const startIndex = allCalls.length;
+          const infoCalls = createERC20InfoCalls(tokenAddress);
+          allCalls.push(...infoCalls);
           
-          console.log(`Processing EOA: ${eoaAddress} (${eoaName})`);
+          tokenInfoMap[tokenAddress] = {
+            nameIndex: startIndex,
+            symbolIndex: startIndex + 1,
+            decimalsIndex: startIndex + 2
+          };
+        }
+        
+        // Add balance calls for each EOA-token combination
+        for (const [eoaAddress, eoaInfo] of Object.entries(eoaData)) {
+          const eoaName = eoaInfo.name || eoaAddress.slice(0, 10) + '...';
+          const tokenAddresses = eoaInfo.tokens || eoaInfo;
           
           for (const tokenAddress of tokenAddresses) {
-            try {
-              console.log(`Checking token ${tokenAddress} for EOA ${eoaAddress} on ${rpcUrl}`);
-              
-              // Get token info
-              const tokenInfo = await getTokenInfo(rpcUrl, tokenAddress);
-              console.log('Token info:', tokenInfo);
-              
-              // Get balance
-              const balanceCall = createERC20BalanceCall(tokenAddress, eoaAddress);
-              const multicallAddress = '0xcA11bde05977b3631167028862bE2a173976CA11';
-              const balanceResults = await makeMulticall(rpcUrl, multicallAddress, [balanceCall]);
-              
-              console.log('Balance results:', balanceResults);
-              
-              let balance = '0';
-              let formattedBalance = '0';
-              
-              if (balanceResults && balanceResults.results && balanceResults.results[0] && balanceResults.results[0].success) {
-                let rawBalance = balanceResults.results[0].result;
-                console.log('Raw balance result:', rawBalance, 'Type:', typeof rawBalance);
-                
-                // Handle array format returned by multicall
-                if (Array.isArray(rawBalance) && rawBalance.length > 0) {
-                  balance = rawBalance[0];
-                  console.log('Extracted from array:', balance, 'Type:', typeof balance);
-                } else if (typeof rawBalance === 'string') {
-                  balance = rawBalance;
-                  console.log('Using string directly:', balance);
-                } else {
-                  balance = String(rawBalance);
-                  console.log('Converted to string:', balance);
+            const balanceCall = createERC20BalanceCall(tokenAddress, eoaAddress);
+            allCalls.push(balanceCall);
+            
+            callMetadata.push({
+              type: 'balance',
+              eoaAddress,
+              eoaName,
+              tokenAddress,
+              callIndex: allCalls.length - 1
+            });
+          }
+        }
+        
+        console.log(`Making single multicall with ${allCalls.length} calls for ${rpcUrl}`);
+        
+        // Make single multicall for all data
+        const multicallAddress = '0xcA11bde05977b3631167028862bE2a173976CA11';
+        const multicallResults = await makeMulticall(rpcUrl, multicallAddress, allCalls);
+        
+        if (!multicallResults || !multicallResults.results) {
+          console.error('Multicall failed for RPC:', rpcUrl);
+          continue;
+        }
+        
+        console.log(`Received ${multicallResults.results.length} results from multicall`);
+        
+        // Extract token info from results
+        const tokenInfoCache = {};
+        for (const [tokenAddress, indices] of Object.entries(tokenInfoMap)) {
+          const nameResult = multicallResults.results[indices.nameIndex];
+          const symbolResult = multicallResults.results[indices.symbolIndex];
+          const decimalsResult = multicallResults.results[indices.decimalsIndex];
+          
+          const extractValue = (result) => {
+            if (!result || !result.success) return null;
+            let value = result.result;
+            if (Array.isArray(value) && value.length > 0) {
+              value = value[0];
+            }
+            if (typeof value === 'string' && value.startsWith('0x')) {
+              try {
+                value = window.ethers.utils.parseBytes32String(value);
+              } catch {
+                try {
+                  value = window.ethers.utils.toUtf8String(value);
+                } catch {
+                  // Keep original value if conversion fails
                 }
-                
-                console.log('Final balance before formatting:', balance, 'Type:', typeof balance);
-                formattedBalance = formatTokenBalance(balance, tokenInfo.decimals);
-                console.log(`Balance: ${balance}, Formatted: ${formattedBalance}`);
+              }
+            }
+            return value;
+          };
+          
+          const name = extractValue(nameResult) || 'Unknown';
+          const symbol = extractValue(symbolResult) || 'UNK';
+          const decimalsValue = extractValue(decimalsResult);
+          const decimals = decimalsValue ? parseInt(decimalsValue) || 18 : 18;
+          
+          tokenInfoCache[tokenAddress] = { name, symbol, decimals };
+        }
+        
+        // Process balance results
+        for (const metadata of callMetadata) {
+          const balanceResult = multicallResults.results[metadata.callIndex];
+          const tokenInfo = tokenInfoCache[metadata.tokenAddress] || {
+            name: 'Unknown Token',
+            symbol: 'UNK',
+            decimals: 18
+          };
+          
+          let balance = '0';
+          let formattedBalance = '0';
+          let status = 'error';
+          let errorMessage = '';
+          
+          if (balanceResult && balanceResult.success) {
+            try {
+              let rawBalance = balanceResult.result;
+              
+              // Handle array format returned by multicall
+              if (Array.isArray(rawBalance) && rawBalance.length > 0) {
+                balance = String(rawBalance[0]);
+              } else if (typeof rawBalance === 'string') {
+                balance = rawBalance;
               } else {
-                console.error('Balance call failed:', balanceResults);
+                balance = String(rawBalance);
               }
               
-              allResults.push({
-                rpcUrl,
-                eoaAddress,
-                eoaName,
-                tokenAddress,
-                tokenName: tokenInfo.name,
-                tokenSymbol: tokenInfo.symbol,
-                tokenDecimals: tokenInfo.decimals,
-                balance,
-                formattedBalance,
-                status: 'success'
-              });
-              
+              formattedBalance = formatTokenBalance(balance, tokenInfo.decimals);
+              status = 'success';
             } catch (error) {
-              console.error(`Error checking balance for ${tokenAddress}:`, error);
-              allResults.push({
-                rpcUrl,
-                eoaAddress,
-                eoaName,
-                tokenAddress,
-                tokenName: 'Error',
-                tokenSymbol: 'ERR',
-                tokenDecimals: 18,
-                balance: '0',
-                formattedBalance: '0',
-                status: 'error',
-                error: error.message
-              });
+              console.error('Error processing balance:', error);
+              errorMessage = error.message;
             }
+          } else {
+            errorMessage = 'Balance call failed';
           }
+          
+          allResults.push({
+            rpcUrl,
+            eoaAddress: metadata.eoaAddress,
+            eoaName: metadata.eoaName,
+            tokenAddress: metadata.tokenAddress,
+            tokenName: tokenInfo.name,
+            tokenSymbol: tokenInfo.symbol,
+            tokenDecimals: tokenInfo.decimals,
+            balance: String(balance),
+            formattedBalance: String(formattedBalance),
+            status,
+            error: errorMessage
+          });
         }
       }
       
       setResults(allResults);
-      setSuccessMessage(`Successfully checked ${allResults.length} token balances!`);
+      setSuccessMessage(`Successfully checked ${allResults.length} token balances with optimized batching!`);
       setTimeout(() => setSuccessMessage(''), 5000);
       
     } catch (error) {
@@ -527,9 +569,9 @@ const AdvancedTokenBalanceChecker = () => {
                             </div>
                           </td>
                           <td className="px-4 py-3 text-sm text-gray-900">
-                            <div className="font-medium">{result.formattedBalance}</div>
+                            <div className="font-medium">{String(result.formattedBalance || '0')}</div>
                             {result.balance !== '0' && (
-                              <div className="text-xs text-gray-500">Raw: {result.balance}</div>
+                              <div className="text-xs text-gray-500">Raw: {String(result.balance)}</div>
                             )}
                           </td>
                           <td className="px-4 py-3 text-sm">
