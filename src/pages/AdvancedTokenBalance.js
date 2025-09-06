@@ -275,19 +275,44 @@ const AdvancedTokenBalanceChecker = () => {
             errorMessage = 'Balance call failed';
           }
           
-          allResults.push({
-            rpcUrl,
-            eoaAddress: metadata.eoaAddress,
-            eoaName: metadata.eoaName,
-            tokenAddress: metadata.tokenAddress,
-            tokenName: tokenInfo.name,
-            tokenSymbol: tokenInfo.symbol,
-            tokenDecimals: tokenInfo.decimals,
-            balance: String(balance),
-            formattedBalance: String(formattedBalance),
-            status,
-            error: errorMessage
-          });
+          // Only add to results if balance is >= 1 token (after accounting for decimals)
+          // Convert balance (wei) to actual token amount and check if >= 1
+          const shouldIncludeResult = (() => {
+            if (status !== 'success' || !balance || balance === '0') {
+              return false; // Skip errors and zero balances
+            }
+            
+            try {
+              const balanceInWei = window.ethers.BigNumber.from(balance);
+              const oneTokenInWei = window.ethers.BigNumber.from(10).pow(tokenInfo.decimals);
+              const hasMinimumBalance = balanceInWei.gte(oneTokenInWei);
+              
+              if (!hasMinimumBalance) {
+                console.log(`Skipping result for ${tokenInfo.symbol} - balance ${formattedBalance} is less than 1 token (${balance} wei < ${oneTokenInWei.toString()} wei)`);
+              }
+              
+              return hasMinimumBalance;
+            } catch (error) {
+              console.error('Error checking minimum balance:', error);
+              return false; // Skip on error
+            }
+          })();
+          
+          if (shouldIncludeResult) {
+            allResults.push({
+              rpcUrl,
+              eoaAddress: metadata.eoaAddress,
+              eoaName: metadata.eoaName,
+              tokenAddress: metadata.tokenAddress,
+              tokenName: tokenInfo.name,
+              tokenSymbol: tokenInfo.symbol,
+              tokenDecimals: tokenInfo.decimals,
+              balance: String(balance),
+              formattedBalance: String(formattedBalance),
+              status,
+              error: errorMessage
+            });
+          }
         }
       }
       
